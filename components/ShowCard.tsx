@@ -4,22 +4,21 @@ import Link from 'next/link';
 
 interface Show {
   id: number;
-  name?: string;        // TV
-  title?: string;       // Movie / Stand-up
+  name?: string;           // TV
+  title?: string;          // Movie
   poster_path: string | null;
   media_type?: 'tv' | 'movie';
 }
 
 export default function ShowCard({ show }: { show: Show }) {
   const title = show.name || show.title || 'Unknown Title';
-  
-  const posterUrl = show.poster_path 
-    ? `https://image.tmdb.org/t/p/w500${show.poster_path}`
-    : 'https://picsum.photos/id/1015/300/450';   // nice fallback placeholder
+  const type = show.media_type || 'tv';
 
-  const href = show.media_type === 'movie' 
-    ? `/movie/${show.id}` 
-    : `/show/${show.id}`;
+  const posterUrl = show.poster_path
+    ? `https://image.tmdb.org/t/p/w500${show.poster_path}`
+    : 'https://picsum.photos/id/1015/300/450';
+
+  const href = type === 'movie' ? `/movie/${show.id}` : `/show/${show.id}`;
 
   return (
     <Link href={href} className="group relative overflow-hidden rounded-3xl shadow-xl">
