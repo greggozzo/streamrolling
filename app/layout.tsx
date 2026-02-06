@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   title: 'Streamrolling',
   description: 'Never pay for more than one streaming service at a time',
   icons: { icon: '/favicon.ico' },
+
+  // ←←← FlexOffers verification meta tag
+  other: {
+    'fo-verify': 'a9c46ac4-ec87-4cf6-9d02-bb3a69b90f90',
+  },
 };
 
 export default function RootLayout({
