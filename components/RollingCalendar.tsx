@@ -6,7 +6,7 @@ import { useMemo } from 'react';
 interface Show {
   tmdb_id: number;
   service: string;
-  window: { primarySubscribe: string; isComplete: boolean };
+  window: { primarySubscribe: string };
   favorite: boolean;
 }
 
@@ -28,30 +28,44 @@ const getNext12Months = () => {
 export default function RollingCalendar({ shows, onAffiliateClick }: Props) {
   const months = useMemo(() => getNext12Months(), []);
 
-  // ─────────────────────────────────────────────────────────────
-  // Strong priority logic
-  // ─────────────────────────────────────────────────────────────
   const calendar: Record<string, Show> = {};
 
-  // 1. Already-aired favorites get the earliest possible month
-  const airedFavorites = shows.filter(s => s.favorite && s.window.isComplete);
-  const upcomingFavorites = shows.filter(s => s.favorite && !s.window.isComplete);
-  const normals = shows.filter(s => !s.favorite);
+  // Group shows by their preferred month
+  const byMonth: Record<string, Show[]> = {};
+  shows.forEach(show => {
+    const m = show.window.primarySubscribe;
+    if (!byMonth[m]) byMonth[m] = [];
+    byMonth[m].push(show);
+  });
 
-  // Place aired favorites first (March if possible)
-  [...airedFavorites, ...upcomingFavorites, ...normals].forEach(show => {
-    let month = show.window.primarySubscribe;
-    let attempts = 0;
+  // Process each month
+  months.forEach(month => {
+    const contenders = byMonth[month] || [];
 
-    // Try preferred month, then keep shifting forward until we find a free slot
-    while (calendar[month] && attempts < 12) {
-      const idx = months.indexOf(month);
-      month = months[(idx + 1) % 12];
-      attempts++;
-    }
+    if (contenders.length === 0) return;
 
-    if (!calendar[month]) {
-      calendar[month] = show;
+    if (contenders.length === 1) {
+      // No conflict → take preferred month
+      calendar[month] = contenders[0];
+    } else {
+      // Conflict → favorite wins, others get pushed forward
+      const favorite = contenders.find(s => s.favorite);
+      const winner = favorite || contenders[0];   // favorite wins, else first one
+      calendar[month] = winner;
+
+      // Push losers forward to next empty slots
+      const losers = contenders.filter(s => s !== winner);
+      let nextMonthIndex = months.indexOf(month) + 1;
+
+      losers.forEach(loser => {
+        let pushMonth = months[nextMonthIndex];
+        while (calendar[pushMonth] && nextMonthIndex < months.length) {
+          nextMonthIndex++;
+          pushMonth = months[nextMonthIndex];
+        }
+        if (pushMonth) calendar[pushMonth] = loser;
+        nextMonthIndex++;
+      });
     }
   });
 
