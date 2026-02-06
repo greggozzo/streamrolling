@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow } from '@/lib/recommendation';
 import ShowCard from '@/components/ShowCard';
-import Link from 'next/link';
 import RollingCalendar from '@/components/RollingCalendar';
+import Link from 'next/link';
 
 export default function Dashboard() {
   const { userId, isLoaded } = useAuth();
@@ -27,14 +27,10 @@ export default function Dashboard() {
 
       const loaded = await Promise.all(
         (data || []).map(async (dbShow: any) => {
-          const res = await fetch(
-            `https://api.themoviedb.org/3/tv/${dbShow.tmdb_id}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&append_to_response=watch/providers`
-          );
+          const res = await fetch(`https://api.themoviedb.org/3/tv/${dbShow.tmdb_id}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&append_to_response=watch/providers`);
           const details = await res.json();
 
-          const epRes = await fetch(
-            `https://api.themoviedb.org/3/tv/${dbShow.tmdb_id}/season/${details.number_of_seasons || 1}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
-          );
+          const epRes = await fetch(`https://api.themoviedb.org/3/tv/${dbShow.tmdb_id}/season/${details.number_of_seasons || 1}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`);
           const season = await epRes.json();
 
           const window = calculateSubscriptionWindow(season.episodes || []);
@@ -46,6 +42,7 @@ export default function Dashboard() {
             window,
             service,
             favorite: dbShow.favorite || false,
+            watch_live: dbShow.watch_live || false,
             tmdb_id: dbShow.tmdb_id,
           };
         })
@@ -59,21 +56,18 @@ export default function Dashboard() {
   }, [userId, isLoaded]);
 
   const toggleFavorite = async (tmdbId: number, current: boolean) => {
-    await fetch('/api/toggle-favorite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tmdbId, favorite: !current }),
-    });
+    await fetch('/api/toggle-favorite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tmdbId, favorite: !current }) });
     setShows(shows.map(s => s.tmdb_id === tmdbId ? { ...s, favorite: !current } : s));
+  };
+
+  const toggleWatchLive = async (tmdbId: number, current: boolean) => {
+    await fetch('/api/toggle-watch-live', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tmdbId, watchLive: !current }) });
+    setShows(shows.map(s => s.tmdb_id === tmdbId ? { ...s, watch_live: !current } : s));
   };
 
   const removeShow = async (tmdbId: number) => {
     if (!confirm('Remove this show?')) return;
-    await fetch('/api/remove-show', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tmdbId }),
-    });
+    await fetch('/api/remove-show', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tmdbId }) });
     setShows(shows.filter(s => s.tmdb_id !== tmdbId));
   };
 
@@ -83,41 +77,28 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-zinc-950 py-12">
       <div className="max-w-7xl mx-auto px-6">
+        <RollingCalendar shows={shows} />
 
-        {/* Smart Rolling Calendar */}
-        <RollingCalendar
-          shows={shows}
-          onAffiliateClick={(service, month) => {
-            console.log(`Affiliate clicked: ${service} in ${month}`);
-            // ← We'll replace this with real affiliate URL later
-          }}
-        />
-
-        {/* My Shows Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
           {shows.map(show => (
-            <div key={show.id} className="bg-zinc-900 rounded-3xl overflow-hidden group relative">
+            <div key={show.id} className="bg-zinc-900 rounded-3xl overflow-hidden group">
               <ShowCard show={show} />
 
-              <div className="p-6">
-                <div className="flex justify-between items-center">
-                  <p className="text-emerald-400 font-bold">Cancel {show.window.primaryCancel}</p>
+              <div className="p-6 space-y-4">
+                <p className="text-emerald-400 font-bold">Cancel {show.window.primaryCancel}</p>
 
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => toggleFavorite(show.tmdb_id, show.favorite)}
-                      className={`text-3xl transition-all ${show.favorite ? 'text-yellow-400 scale-110' : 'text-zinc-600 hover:text-yellow-400'}`}
-                    >
-                      ★
-                    </button>
+                <div className="flex gap-4">
+                  <button onClick={() => toggleFavorite(show.tmdb_id, show.favorite)} className={`text-3xl ${show.favorite ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                    ★
+                  </button>
 
-                    <button
-                      onClick={() => removeShow(show.tmdb_id)}
-                      className="text-red-400 hover:text-red-300 text-sm px-4 py-1 rounded-xl border border-red-900 hover:bg-red-950 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  </div>
+                  <button onClick={() => toggleWatchLive(show.tmdb_id, show.watch_live)} className={`text-sm px-4 py-1 rounded-xl border ${show.watch_live ? 'bg-emerald-600 text-white' : 'border-zinc-700 text-zinc-400'}`}>
+                    Watch Live
+                  </button>
+
+                  <button onClick={() => removeShow(show.tmdb_id)} className="text-red-400 hover:text-red-300 text-sm px-4 py-1 rounded-xl border border-red-900 hover:bg-red-950 transition-colors">
+                    Remove
+                  </button>
                 </div>
               </div>
             </div>
