@@ -32,3 +32,9 @@ export async function searchShows(query: string) {
   const json = await res.json();
   return json.results;
 }
+
+export async function searchMovies(query: string) {
+  const res = await fetch(`${BASE}/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&language=en-US`);
+  const json = await res.json();
+  return json.results;
+}

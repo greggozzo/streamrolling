@@ -42,13 +42,14 @@ export default async function ShowPage({ params }: { params: Promise<{ id: strin
               <p className="text-zinc-400 mt-2">{window.primaryNote}</p>
               <p className="text-sm text-zinc-500 mt-1">Cancel {window.primaryCancel}</p>
             </div>
-
-            {!window.isComplete && window.secondarySubscribe && (
-              <div className="border-t border-zinc-700 pt-8">
-                <p className="uppercase tracking-widest text-zinc-500 text-sm mb-1">Alternative (watch live)</p>
-                <p className="text-3xl font-bold">Subscribe in {window.secondarySubscribe}</p>
-              </div>
-            )}
+         
+	    {!window.isComplete && window.secondarySubscribe && (
+ 	     <div className="border-t border-zinc-700 pt-8">
+               <p className="uppercase tracking-widest text-zinc-500 text-sm mb-1">Alternative (watch live)</p>
+               <p className="text-3xl font-bold">
+                 {window.isCurrentlyAiring ? 'Subscribe Now' : `Subscribe in ${window.secondarySubscribe}`}
+               </p>
+             </div>
 
             {/* Updated button with service name */}
             <a
