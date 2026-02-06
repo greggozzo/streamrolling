@@ -1,5 +1,5 @@
 // app/movie/[id]/page.tsx
-import { getShowDetails } from '@/lib/tmdb';           // reuse same function
+import { getShowDetails } from '@/lib/tmdb';
 import Image from 'next/image';
 import AddToMyShowsButton from '@/components/AddToMyShowsButton';
 
@@ -10,16 +10,22 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
   const providers = movie['watch/providers']?.results?.US?.flatrate || [];
   const primaryService = providers[0]?.provider_name || 'the service';
 
+  // Safe poster with fallback
+  const posterUrl = movie.poster_path
+    ? `https://image.tmdb.org/t/p/w780${movie.poster_path}`
+    : 'https://picsum.photos/id/1015/600/900';   // nice placeholder
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white py-12">
       <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12">
         <div>
           <Image
-            src={`https://image.tmdb.org/t/p/w780${movie.poster_path}`}
-            alt={movie.title}
+            src={posterUrl}
+            alt={movie.title || 'Movie'}
             width={600}
             height={900}
             className="rounded-3xl shadow-2xl"
+            unoptimized
           />
         </div>
 
