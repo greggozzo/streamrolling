@@ -1,27 +1,27 @@
 // app/api/add-show/route.ts
-import { auth } from '@clerk/nextjs/server';
+import { getAuth } from '@clerk/nextjs/server';     // ← correct import
 import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   const { userId } = getAuth(request);
 
   console.log("=== DEBUG ON streamrolling.com ===");
-  console.log("userId from auth():", userId);
-  console.log("Cookies received:", request.headers.get('cookie')?.slice(0, 200) + '...');
+  console.log("userId from getAuth(request):", userId || "undefined");
+  console.log("Cookie length:", request.headers.get('cookie')?.length || 0);
 
   if (!userId) {
-    return Response.json({ error: 'Unauthorized - no userId from Clerk' }, { status: 401 });
+    return Response.json({ error: 'Unauthorized - no userId from getAuth' }, { status: 401 });
   }
 
   const { tmdbId } = await request.json();
 
-  // Optional: check free tier limit (we'll add paid check later)
+  // Optional free tier check
   const { data: existing } = await supabase
     .from('user_shows')
     .select('*')
     .eq('user_id', userId);
 
-  if (existing.length >= 5) {
+  if (existing && existing.length >= 5) {
     return Response.json({ error: 'Free tier limit reached (5 shows). Upgrade for unlimited.' }, { status: 402 });
   }
 
