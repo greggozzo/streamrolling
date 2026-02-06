@@ -11,24 +11,16 @@ export const metadata: Metadata = {
   title: 'Streamrolling',
   description: 'Never pay for more than one streaming service at a time',
   icons: { icon: '/favicon.ico' },
-
-  // FlexOffers verification meta tag
   other: {
     'fo-verify': 'a9c46ac4-ec87-4cf6-9d02-bb3a69b90f90',
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      frontendApi={process.env.NEXT_PUBLIC_CLERK_FRONTEND_API}
-      domain="streamrolling.com"          // ← This makes the cookie work on your custom domain
-      isSatellite={false}
+      proxyUrl="https://clerk.streamrolling.com"   // ← This is the correct setting for your proxy/CNAME setup
     >
       <html lang="en" className="dark">
         <body className={`${inter.className} bg-zinc-950 text-white`}>
