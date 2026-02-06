@@ -38,3 +38,10 @@ export async function searchMovies(query: string) {
   const json = await res.json();
   return json.results;
 }
+export async function getMovieDetails(id: string) {
+  const res = await fetch(
+    `https://api.themoviedb.org/3/movie/${id}?api_key=${TMDB_KEY}&append_to_response=watch/providers`,
+    { next: { revalidate: 3600 } }
+  );
+  return res.json();
+}
