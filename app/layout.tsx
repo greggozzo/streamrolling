@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: 'Never pay for more than one streaming service at a time',
   icons: { icon: '/favicon.ico' },
 
-  // ←←← FlexOffers verification meta tag
+  // FlexOffers verification meta tag
   other: {
     'fo-verify': 'a9c46ac4-ec87-4cf6-9d02-bb3a69b90f90',
   },
@@ -24,7 +24,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      frontendApi={process.env.NEXT_PUBLIC_CLERK_FRONTEND_API}
+      domain="streamrolling.com"          // ← This makes the cookie work on your custom domain
+      isSatellite={false}
+    >
       <html lang="en" className="dark">
         <body className={`${inter.className} bg-zinc-950 text-white`}>
           <Header />
