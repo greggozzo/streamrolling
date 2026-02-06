@@ -1,16 +1,29 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow } from '@/lib/recommendation';
 import ShowCard from '@/components/ShowCard';
 import Link from 'next/link';
 
+// Dynamic 12 months starting from current month
+const getNext12Months = () => {
+  const months = [];
+  let date = new Date();
+  for (let i = 0; i < 12; i++) {
+    months.push(date.toLocaleString('default', { month: 'short', year: 'numeric' }));
+    date.setMonth(date.getMonth() + 1);
+  }
+  return months;
+};
+
 export default function Dashboard() {
   const { userId, isLoaded } = useAuth();
   const [shows, setShows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const months = useMemo(() => getNext12Months(), []);
 
   useEffect(() => {
     if (!isLoaded || !userId) {
@@ -76,12 +89,26 @@ export default function Dashboard() {
     setShows(shows.filter(s => s.tmdb_id !== tmdbId));
   };
 
-  // Group by service + month for the table
-  const plan = shows.map(show => ({
-    service: show.service,
-    month: show.window.primarySubscribe,
-    show,
-  })).sort((a, b) => a.month.localeCompare(b.month));
+  // Build rolling plan: favorites first, then shift others if conflict
+  const calendar: Record<string, any> = {};
+
+  const favorites = shows.filter(s => s.favorite);
+  const normals = shows.filter(s => !s.favorite);
+
+  [...favorites, ...normals].forEach(show => {
+    let month = show.window.primarySubscribe;
+    let attempts = 0;
+
+    while (calendar[month] && attempts < 12) {
+      const idx = months.indexOf(month);
+      month = months[(idx + 1) % 12];
+      attempts++;
+    }
+
+    if (!calendar[month]) {
+      calendar[month] = show;
+    }
+  });
 
   if (!isLoaded) return <div className="p-20 text-center">Loading...</div>;
   if (!userId) return <div className="p-20 text-center text-2xl">Please sign in</div>;
@@ -93,27 +120,31 @@ export default function Dashboard() {
         {/* Rolling Plan Table */}
         <div className="mb-16">
           <h2 className="text-3xl font-bold mb-6">Your Rolling Plan</h2>
-          <div className="bg-zinc-900 rounded-3xl p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {plan.map((item, i) => (
-                <div key={i} className="bg-zinc-800 rounded-2xl p-6 flex items-center gap-4">
-                  <div className="w-14 h-14 bg-emerald-600 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
-                    ▶
-                  </div>
-                  <div>
-                    <div className="font-semibold text-lg">{item.service}</div>
-                    <div className="text-emerald-400 text-sm">{item.month}</div>
-                  </div>
+          <div className="bg-zinc-900 rounded-3xl p-8 grid grid-cols-12 gap-3">
+            {months.map(month => {
+              const entry = calendar[month];
+              return (
+                <div key={month} className="text-center">
+                  <div className="text-xs text-zinc-500 mb-2 font-mono">{month}</div>
+                  {entry ? (
+                    <div className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium py-4 px-5 rounded-2xl transition-all">
+                      {entry.service}
+                    </div>
+                  ) : (
+                    <div className="text-zinc-600 text-sm py-4 border border-dashed border-zinc-700 rounded-2xl">
+                      Open
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
 
         {/* My Shows Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {shows.map(show => (
-            <div key={show.id} className="bg-zinc-900 rounded-3xl overflow-hidden group">
+            <div key={show.id} className="bg-zinc-900 rounded-3xl overflow-hidden group relative">
               <ShowCard show={show} />
 
               <div className="p-6">
@@ -123,7 +154,7 @@ export default function Dashboard() {
                   <div className="flex gap-4">
                     <button
                       onClick={() => toggleFavorite(show.tmdb_id, show.favorite)}
-                      className={`text-3xl transition-all ${show.favorite ? 'text-yellow-400' : 'text-zinc-600 hover:text-yellow-400'}`}
+                      className={`text-3xl transition-all ${show.favorite ? 'text-yellow-400 scale-110' : 'text-zinc-600 hover:text-yellow-400'}`}
                     >
                       ★
                     </button>
