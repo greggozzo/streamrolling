@@ -1,29 +1,17 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow } from '@/lib/recommendation';
 import ShowCard from '@/components/ShowCard';
 import Link from 'next/link';
-
-// Dynamic 12 months starting from current month
-const getNext12Months = () => {
-  const months = [];
-  let date = new Date();
-  for (let i = 0; i < 12; i++) {
-    months.push(date.toLocaleString('default', { month: 'short', year: 'numeric' }));
-    date.setMonth(date.getMonth() + 1);
-  }
-  return months;
-};
+import RollingCalendar from '@/components/RollingCalendar';
 
 export default function Dashboard() {
   const { userId, isLoaded } = useAuth();
   const [shows, setShows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const months = useMemo(() => getNext12Months(), []);
 
   useEffect(() => {
     if (!isLoaded || !userId) {
@@ -89,27 +77,6 @@ export default function Dashboard() {
     setShows(shows.filter(s => s.tmdb_id !== tmdbId));
   };
 
-  // Build rolling plan: favorites first, then shift others if conflict
-  const calendar: Record<string, any> = {};
-
-  const favorites = shows.filter(s => s.favorite);
-  const normals = shows.filter(s => !s.favorite);
-
-  [...favorites, ...normals].forEach(show => {
-    let month = show.window.primarySubscribe;
-    let attempts = 0;
-
-    while (calendar[month] && attempts < 12) {
-      const idx = months.indexOf(month);
-      month = months[(idx + 1) % 12];
-      attempts++;
-    }
-
-    if (!calendar[month]) {
-      calendar[month] = show;
-    }
-  });
-
   if (!isLoaded) return <div className="p-20 text-center">Loading...</div>;
   if (!userId) return <div className="p-20 text-center text-2xl">Please sign in</div>;
 
@@ -117,29 +84,14 @@ export default function Dashboard() {
     <div className="min-h-screen bg-zinc-950 py-12">
       <div className="max-w-7xl mx-auto px-6">
 
-        {/* Rolling Plan Table */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-bold mb-6">Your Rolling Plan</h2>
-          <div className="bg-zinc-900 rounded-3xl p-8 grid grid-cols-12 gap-3">
-            {months.map(month => {
-              const entry = calendar[month];
-              return (
-                <div key={month} className="text-center">
-                  <div className="text-xs text-zinc-500 mb-2 font-mono">{month}</div>
-                  {entry ? (
-                    <div className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium py-4 px-5 rounded-2xl transition-all">
-                      {entry.service}
-                    </div>
-                  ) : (
-                    <div className="text-zinc-600 text-sm py-4 border border-dashed border-zinc-700 rounded-2xl">
-                      Open
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {/* Smart Rolling Calendar */}
+        <RollingCalendar
+          shows={shows}
+          onAffiliateClick={(service, month) => {
+            console.log(`Affiliate clicked: ${service} in ${month}`);
+            // ← We'll replace this with real affiliate URL later
+          }}
+        />
 
         {/* My Shows Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
