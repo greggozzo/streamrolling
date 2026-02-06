@@ -4,8 +4,12 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   const { userId } = auth();
+  console.log("=== DEBUG ON streamrolling.com ===");
+  console.log("userId from auth():", userId);
+  console.log("Cookies received:", request.headers.get('cookie')?.slice(0, 200) + '...');
+
   if (!userId) {
-    return Response.json({ error: 'Not signed in' }, { status: 401 });
+    return Response.json({ error: 'Unauthorized - no userId from Clerk' }, { status: 401 });
   }
 
   const { tmdbId } = await request.json();
