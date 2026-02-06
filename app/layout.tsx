@@ -16,10 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      proxyUrl="https://clerk.streamrolling.com"   // ← This is the ONLY thing that matters for your setup
-    >
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en" className="dark">
         <body className={`${inter.className} bg-zinc-950 text-white`}>
           <Header />
