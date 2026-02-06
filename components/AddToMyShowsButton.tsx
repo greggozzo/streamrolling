@@ -3,9 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 
-export default function AddToMyShowsButton({ tmdbId }: { tmdbId: number }) {
+interface Props {
+  tmdbId: number;
+  mediaType?: 'tv' | 'movie';   // ← NEW: pass 'movie' from movie pages
+}
+
+export default function AddToMyShowsButton({ tmdbId, mediaType = 'tv' }: Props) {
   const { isSignedIn, userId } = useUser();
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(false);
@@ -16,12 +20,9 @@ export default function AddToMyShowsButton({ tmdbId }: { tmdbId: number }) {
   useEffect(() => {
     if (!isSignedIn || !userId) return;
 
-    supabase
-      .from('user_shows')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('tmdb_id', tmdbId)
-      .then(({ data }) => setAlreadySaved(data && data.length > 0));
+    fetch(`/api/check-saved?tmdbId=${tmdbId}`)
+      .then(res => res.json())
+      .then(data => setAlreadySaved(data.saved));
   }, [isSignedIn, userId, tmdbId]);
 
   const add = async () => {
@@ -34,13 +35,13 @@ export default function AddToMyShowsButton({ tmdbId }: { tmdbId: number }) {
     const res = await fetch('/api/add-show', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tmdbId }),
+      body: JSON.stringify({ tmdbId, mediaType }),
     });
 
     const json = await res.json();
     if (json.success) {
       setAdded(true);
-      setTimeout(() => router.push('/dashboard'), 600);
+      setTimeout(() => router.push('/dashboard'), 700);
     } else {
       alert(json.error || 'Could not add');
     }
@@ -55,7 +56,9 @@ export default function AddToMyShowsButton({ tmdbId }: { tmdbId: number }) {
     );
   }
 
-  if (added) return <div className="text-emerald-400 font-bold text-center py-4">Added ✓ Going to dashboard...</div>;
+  if (added) {
+    return <div className="text-emerald-400 font-bold text-center py-4">Added ✓ Going to dashboard...</div>;
+  }
 
   return (
     <button
