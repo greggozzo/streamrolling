@@ -1,7 +1,7 @@
 // components/RollingCalendar.tsx
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 
 interface Show {
   service: string;
@@ -24,28 +24,38 @@ const getNext12Months = () => {
   return months;
 };
 
+// Convert "February 2026" → "Feb 2026"
+const normalizeMonth = (str: string): string => {
+  if (!str || str === 'TBD') return 'TBD';
+  const [monthName, year] = str.split(' ');
+  return `${monthName.slice(0, 3)} ${year}`;
+};
+
 export default function RollingCalendar({ shows }: Props) {
   const months = useMemo(() => getNext12Months(), []);
 
-  useEffect(() => {
-    console.log("=== RollingCalendar Debug ===");
-    console.log("Number of shows received:", shows.length);
-    console.log("Preferred months from shows:", shows.map(s => s.window.primarySubscribe));
-    console.log("Generated calendar months:", months);
-  }, [shows, months]);
-
-  // ... rest of your calendar code ...
   const calendar: Record<string, Show> = {};
 
-  shows.forEach(show => {
-    let month = show.window.primarySubscribe;
+  // Priority: Favorite + Watch Live > Favorite > Watch Live > Normal
+  const sortedShows = [...shows].sort((a, b) => {
+    const aScore = (a.favorite ? 100 : 0) + (a.watch_live ? 50 : 0);
+    const bScore = (b.favorite ? 100 : 0) + (b.watch_live ? 50 : 0);
+    return bScore - aScore;
+  });
+
+  sortedShows.forEach(show => {
+    let month = normalizeMonth(show.window.primarySubscribe);
     let attempts = 0;
+
     while (calendar[month] && attempts < 12) {
       const idx = months.indexOf(month);
       month = months[(idx + 1) % 12];
       attempts++;
     }
-    if (!calendar[month]) calendar[month] = show;
+
+    if (!calendar[month]) {
+      calendar[month] = show;
+    }
   });
 
   return (
