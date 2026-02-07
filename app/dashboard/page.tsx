@@ -7,6 +7,7 @@ import { calculateSubscriptionWindow } from '@/lib/recommendation';
 import ShowCard from '@/components/ShowCard';
 import RollingCalendar from '@/components/RollingCalendar';
 import Link from 'next/link';
+import SearchBar from '@/components/SearchBar';
 
 export default function Dashboard() {
   const { userId, isLoaded } = useAuth();
@@ -32,13 +33,9 @@ export default function Dashboard() {
             ? `https://api.themoviedb.org/3/movie/${dbShow.tmdb_id}`
             : `https://api.themoviedb.org/3/tv/${dbShow.tmdb_id}`;
 
-          const res = await fetch(
-            `${endpoint}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&append_to_response=watch/providers`
-          );
+          const res = await fetch(`${endpoint}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&append_to_response=watch/providers`);
           const details = await res.json();
-          console.log(`Loaded ${isMovie ? 'MOVIE' : 'TV'} ID ${dbShow.tmdb_id}:`, details.title || details.name);
 
-          // Only fetch episodes for TV shows
           let window = { primarySubscribe: 'TBD', primaryCancel: 'TBD', isComplete: false };
           if (!isMovie) {
             const epRes = await fetch(
@@ -98,47 +95,79 @@ export default function Dashboard() {
     setShows(shows.filter(s => s.tmdb_id !== tmdbId));
   };
 
+  // Drag and drop reordering
+  const onDragEnd = (result: any) => {
+    if (!result.destination) return;
+    const items = Array.from(shows);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    setShows(items);
+  };
+
   if (!isLoaded) return <div className="p-20 text-center">Loading...</div>;
   if (!userId) return <div className="p-20 text-center text-2xl">Please sign in</div>;
 
   return (
     <div className="min-h-screen bg-zinc-950 py-12">
       <div className="max-w-7xl mx-auto px-6">
+        {/* Search Bar */}
+        <div className="mb-10">
+          <SearchBar />
+        </div>
+
+        {/* Rolling Calendar */}
         <RollingCalendar shows={shows} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-          {shows.map(show => (
-            <div key={show.id} className="bg-zinc-900 rounded-3xl overflow-hidden group relative">
-              <ShowCard show={show} />
+        {/* My Shows */}
+        <div className="mt-16">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl font-bold">My Shows ({shows.length})</h2>
+            <Link href="/upgrade" className="bg-emerald-500 text-black px-8 py-3 rounded-2xl font-bold">
+              Upgrade $2.99/mo →
+            </Link>
+          </div>
 
-              <div className="p-6 space-y-4">
-                <p className="text-emerald-400 font-bold">Cancel {show.window.primaryCancel}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {shows.map((show, index) => (
+              <div key={show.id} className="bg-zinc-900 rounded-3xl overflow-hidden group relative">
+                <ShowCard show={show} />
 
-                <div className="flex gap-4 flex-wrap">
-                  <button
-                    onClick={() => toggleFavorite(show.tmdb_id, show.favorite)}
-                    className={`text-3xl transition-all ${show.favorite ? 'text-yellow-400 scale-110' : 'text-zinc-600 hover:text-yellow-400'}`}
-                  >
-                    ★
-                  </button>
+                <div className="p-6">
+                  <p className="text-emerald-400 font-bold">Cancel {show.window.primaryCancel}</p>
 
-                  <button
-                    onClick={() => toggleWatchLive(show.tmdb_id, show.watch_live)}
-                    className={`text-sm px-5 py-2 rounded-xl border transition-colors ${show.watch_live ? 'bg-emerald-600 text-white border-emerald-600' : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'}`}
-                  >
-                    Watch Live
-                  </button>
+                  <div className="flex gap-4 mt-5">
+                    <button
+                      onClick={() => toggleFavorite(show.tmdb_id, show.favorite)}
+                      className={`text-3xl transition-all ${show.favorite ? 'text-yellow-400 scale-110' : 'text-zinc-600 hover:text-yellow-400'}`}
+                    >
+                      ★
+                    </button>
 
-                  <button
-                    onClick={() => removeShow(show.tmdb_id)}
-                    className="text-red-400 hover:text-red-300 text-sm px-5 py-2 rounded-xl border border-red-900 hover:bg-red-950 transition-colors"
-                  >
-                    Remove
-                  </button>
+                    <button
+                      onClick={() => toggleWatchLive(show.tmdb_id, show.watch_live)}
+                      disabled={show.window.isComplete}
+                      className={`text-sm px-5 py-2 rounded-xl border transition-colors ${
+                        show.watch_live 
+                          ? 'bg-emerald-600 text-white border-emerald-600' 
+                          : show.window.isComplete 
+                            ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
+                            : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'
+                      }`}
+                    >
+                      {show.window.isComplete ? 'Completed' : 'Watch Live'}
+                    </button>
+
+                    <button
+                      onClick={() => removeShow(show.tmdb_id)}
+                      className="text-red-400 hover:text-red-300 text-sm px-5 py-2 rounded-xl border border-red-900 hover:bg-red-950 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>
