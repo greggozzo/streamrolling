@@ -4,24 +4,15 @@
 import { useMemo } from 'react';
 
 interface Show {
-  tmdb_id: number;
   service: string;
-  window: { primarySubscribe: string };
+  window: { primarySubscribe: string; isComplete: boolean };
   favorite: boolean;
+  watch_live: boolean;
 }
 
 interface Props {
   shows: Show[];
-  onAffiliateClick?: (service: string, month: string) => void;
 }
-
-// Convert "February 2026" → "Feb 2026"
-const normalizeMonth = (fullMonth: string): string => {
-  if (!fullMonth || fullMonth === 'TBD') return 'TBD';
-  const [monthName, year] = fullMonth.split(' ');
-  const short = monthName.slice(0, 3);
-  return `${short} ${year}`;
-};
 
 const getNext12Months = () => {
   const months: string[] = [];
@@ -33,46 +24,35 @@ const getNext12Months = () => {
   return months;
 };
 
-export default function RollingCalendar({ shows, onAffiliateClick }: Props) {
+export default function RollingCalendar({ shows }: Props) {
   const months = useMemo(() => getNext12Months(), []);
 
   const calendar: Record<string, Show> = {};
 
-  // Group by normalized preferred month
-  const byMonth: Record<string, Show[]> = {};
-  shows.forEach(show => {
-    const normalized = normalizeMonth(show.window.primarySubscribe);
-    if (!byMonth[normalized]) byMonth[normalized] = [];
-    byMonth[normalized].push(show);
+  // Priority order:
+  // 1. Favorite + Watch Live → absolute highest
+  // 2. Favorite (normal)
+  // 3. Watch Live (normal)
+  // 4. Everything else → added order (oldest first)
+  const sorted = [...shows].sort((a, b) => {
+    const aScore = (a.favorite ? 100 : 0) + (a.watch_live ? 50 : 0);
+    const bScore = (b.favorite ? 100 : 0) + (b.watch_live ? 50 : 0);
+    if (aScore !== bScore) return bScore - aScore;
+    return 0; // preserve addition order
   });
 
-  // Process each month in order
-  months.forEach(month => {
-    const contenders = byMonth[month] || [];
+  sorted.forEach(show => {
+    let month = show.window.primarySubscribe;
+    let attempts = 0;
 
-    if (contenders.length === 0) return;
+    while (calendar[month] && attempts < 12) {
+      const idx = months.indexOf(month);
+      month = months[(idx + 1) % 12];
+      attempts++;
+    }
 
-    if (contenders.length === 1) {
-      calendar[month] = contenders[0];
-    } else {
-      // Conflict → favorite wins
-      const favorite = contenders.find(s => s.favorite);
-      const winner = favorite || contenders[0];
-      calendar[month] = winner;
-
-      // Push losers forward
-      const losers = contenders.filter(s => s !== winner);
-      let nextIdx = months.indexOf(month) + 1;
-
-      losers.forEach(loser => {
-        let pushMonth = months[nextIdx];
-        while (calendar[pushMonth] && nextIdx < months.length) {
-          nextIdx++;
-          pushMonth = months[nextIdx];
-        }
-        if (pushMonth) calendar[pushMonth] = loser;
-        nextIdx++;
-      });
+    if (!calendar[month]) {
+      calendar[month] = show;
     }
   });
 
@@ -86,12 +66,9 @@ export default function RollingCalendar({ shows, onAffiliateClick }: Props) {
             <div key={month} className="text-center">
               <div className="text-xs text-zinc-500 mb-2 font-mono">{month}</div>
               {entry ? (
-                <button
-                  onClick={() => onAffiliateClick?.(entry.service, month)}
-                  className="block w-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium py-4 px-5 rounded-2xl transition-all active:scale-95"
-                >
+                <div className="bg-emerald-600 text-white text-sm font-medium py-4 px-5 rounded-2xl">
                   {entry.service}
-                </button>
+                </div>
               ) : (
                 <div className="text-zinc-600 text-sm py-4 border border-dashed border-zinc-700 rounded-2xl">
                   Open
