@@ -1,13 +1,15 @@
 // components/RollingCalendar.tsx
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 
 interface Show {
   service: string;
   window: { primarySubscribe: string };
   favorite: boolean;
   watch_live: boolean;
+  name?: string;           // show title
+  title?: string;          // movie title
 }
 
 interface Props {
@@ -24,46 +26,26 @@ const getNext12Months = () => {
   return months;
 };
 
-// Normalize "February 2026" → "Feb 2026"
-const normalizeMonth = (str: string): string => {
-  if (!str || str === 'TBD') return 'TBD';
-  const [monthName, year] = str.split(' ');
-  return `${monthName.slice(0, 3)} ${year}`;
-};
-
 export default function RollingCalendar({ shows }: Props) {
   const months = useMemo(() => getNext12Months(), []);
 
-  useEffect(() => {
-    console.log("=== RollingCalendar Debug ===");
-    console.log("Shows received:", shows.length);
-    console.log("Raw preferred months:", shows.map(s => s.window.primarySubscribe));
-    console.log("Normalized preferred months:", shows.map(s => normalizeMonth(s.window.primarySubscribe)));
-    console.log("Calendar months:", months);
-  }, [shows, months]);
+  // Group by service + month
+  const grouped: Record<string, Show[]> = {};
 
-  const calendar: Record<string, Show> = {};
+  shows.forEach(show => {
+    const month = show.window.primarySubscribe;
+    const key = `${show.service}---${month}`;
 
-  // Strong priority: Favorite + Watch Live > Favorite > Watch Live > Normal
-  const sortedShows = [...shows].sort((a, b) => {
-    const aScore = (a.favorite ? 100 : 0) + (a.watch_live ? 50 : 0);
-    const bScore = (b.favorite ? 100 : 0) + (b.watch_live ? 50 : 0);
-    return bScore - aScore;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(show);
   });
 
-  sortedShows.forEach(show => {
-    let month = normalizeMonth(show.window.primarySubscribe);
-    let attempts = 0;
+  // Build final calendar (one entry per service/month)
+  const calendar: Record<string, { service: string; shows: Show[] }> = {};
 
-    while (calendar[month] && attempts < 12) {
-      const idx = months.indexOf(month);
-      month = months[(idx + 1) % 12];
-      attempts++;
-    }
-
-    if (!calendar[month]) {
-      calendar[month] = show;
-    }
+  Object.keys(grouped).forEach(key => {
+    const [service, month] = key.split('---');
+    calendar[month] = { service, shows: grouped[key] };
   });
 
   return (
@@ -72,16 +54,38 @@ export default function RollingCalendar({ shows }: Props) {
       <div className="bg-zinc-900 rounded-3xl p-8 grid grid-cols-12 gap-3">
         {months.map(month => {
           const entry = calendar[month];
+
           return (
-            <div key={month} className="text-center">
+            <div key={month} className="text-center group relative">
               <div className="text-xs text-zinc-500 mb-2 font-mono">{month}</div>
+
               {entry ? (
-                <div className="bg-emerald-600 text-white text-sm font-medium py-4 px-5 rounded-2xl">
+                <div 
+                  className="bg-emerald-600 text-white text-sm font-medium py-4 px-5 rounded-2xl cursor-pointer hover:bg-emerald-500 transition-all relative"
+                  title={`${entry.shows.map(s => s.name || s.title).join(', ')}`}
+                >
                   {entry.service}
+                  {entry.shows.length > 1 && (
+                    <span className="absolute -top-1 -right-1 bg-white text-emerald-600 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                      {entry.shows.length}
+                    </span>
+                  )}
                 </div>
               ) : (
                 <div className="text-zinc-600 text-sm py-4 border border-dashed border-zinc-700 rounded-2xl">
                   Open
+                </div>
+              )}
+
+              {/* Hover tooltip */}
+              {entry && entry.shows.length > 0 && (
+                <div className="absolute hidden group-hover:block bg-zinc-950 border border-zinc-700 text-left text-xs rounded-xl p-4 w-80 -mt-2 z-50 shadow-2xl">
+                  <div className="font-medium text-emerald-400 mb-2">{entry.service} — {month}</div>
+                  <ul className="space-y-1 text-zinc-300">
+                    {entry.shows.map(s => (
+                      <li key={s.tmdb_id}>• {s.name || s.title}</li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
