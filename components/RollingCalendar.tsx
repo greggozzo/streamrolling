@@ -12,7 +12,7 @@ export default function RollingCalendar({ shows }: Props) {
   const monthKeys = useMemo(() => getNext12MonthKeys(), []);
   const plan = useMemo(() => buildSubscriptionPlan(shows), [shows]);
 
-  // Force tooltip to show ALL shows for this service/month (even if planner only kept 1)
+  // Force tooltip to show ALL shows for this service/month
   const fullPlan = useMemo(() => {
     const map: Record<string, { service: string; shows: Show[] }> = {};
 
@@ -58,13 +58,7 @@ export default function RollingCalendar({ shows }: Props) {
 
                   {/* Tooltip - shows ALL shows for this service/month */}
                   {fullEntry.shows.length > 0 && (
-                    <div className="
-                      absolute hidden group-hover:block
-                      left-1/2 -translate-x-1/2
-                      bottom-full mb-3
-                      w-72 bg-zinc-800 border border-zinc-700
-                      rounded-2xl p-4 text-left shadow-2xl z-50 pointer-events-none
-                    ">
+                    <div className="absolute hidden group-hover:block left-1/2 -translate-x-1/2 bottom-full mb-3 w-72 bg-zinc-800 border border-zinc-700 rounded-2xl p-4 text-left shadow-2xl z-50 pointer-events-none">
                       <div className="text-emerald-400 font-semibold text-xs mb-3">
                         {entry.service} — {formatMonth(key)}
                       </div>
