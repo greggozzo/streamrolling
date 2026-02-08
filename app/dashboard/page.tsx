@@ -54,7 +54,7 @@ export default function Dashboard() {
             window,
             service,
             favorite: dbShow.favorite || false,
-            watch_live: dbShow.watch_live || false,
+            watchLive: !!dbShow.watch_live,
             tmdb_id: dbShow.tmdb_id,
           };
         })
