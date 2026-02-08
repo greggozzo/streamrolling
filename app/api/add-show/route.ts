@@ -10,12 +10,11 @@ export async function POST(request: Request) {
 
   const { tmdbId, mediaType = 'tv' } = await request.json();
 
-  // Get isPaid from session claims (most reliable on custom domains)
-  const isPaid = (getAuth(request).sessionClaims?.privateMetadata as any)?.isPaid === true;
+  // Allow unlimited shows ONLY for your user ID
+  const isPaid = userId === "user_39H6E6HcchOPB0bkshyfERzCzWS";
 
   console.log(`[add-show] User ${userId} → isPaid: ${isPaid}`);
 
-  // Free tier limit only for non-paid users
   if (!isPaid) {
     const { data: existing } = await supabase
       .from('user_shows')
@@ -35,10 +34,7 @@ export async function POST(request: Request) {
       media_type: mediaType,
     });
 
-  if (error) {
-    console.error("Supabase error:", error);
-    return Response.json({ error: error.message }, { status: 400 });
-  }
+  if (error) return Response.json({ error: error.message }, { status: 400 });
 
   return Response.json({ success: true });
 }
