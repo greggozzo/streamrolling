@@ -1,7 +1,7 @@
 // components/RollingCalendar.tsx
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 
 interface Show {
   service: string;
@@ -22,15 +22,22 @@ const getNext12Months = () => {
   return months;
 };
 
-// Normalize "February 2026" → "Feb 2026"
 const normalizeMonth = (str: string): string => {
   if (!str) return '';
-  const [monthName, year] = str.split(' ');
-  return `${monthName.slice(0, 3)} ${year}`;
+  const [m, y] = str.split(' ');
+  return `${m.slice(0, 3)} ${y}`;
 };
 
 export default function RollingCalendar({ shows }: Props) {
   const months = useMemo(() => getNext12Months(), []);
+
+  useEffect(() => {
+    console.log("=== ROLLING CALENDAR DEBUG ===");
+    console.log("Shows received:", shows.length);
+    console.log("Raw primarySubscribe values:", shows.map(s => s.window.primarySubscribe));
+    console.log("Normalized values:", shows.map(s => normalizeMonth(s.window.primarySubscribe)));
+    console.log("Calendar months:", months);
+  }, [shows, months]);
 
   const calendar: Record<string, string> = {};
 
