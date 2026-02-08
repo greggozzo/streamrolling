@@ -1,42 +1,35 @@
 // app/api/add-show/route.ts
 import { getAuth } from '@clerk/nextjs/server';
 import { supabase } from '@/lib/supabase';
+import { clerkClient } from '@clerk/nextjs/server';
 
 export async function POST(request: Request) {
   const { userId } = getAuth(request);
+  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  console.log("=== DEBUG ON streamrolling.com ===");
-  console.log("userId from getAuth(request):", userId || "undefined");
+  const { tmdbId, mediaType = 'tv' } = await request.json();
 
-  if (!userId) {
-    return Response.json({ error: 'Unauthorized - no userId from getAuth' }, { status: 401 });
-  }
+  // Get user from Clerk to check if paid
+  const user = await clerkClient.users.getUser(userId);
+  const isPaid = (user.privateMetadata as any)?.isPaid === true;
 
-  const { tmdbId, mediaType = 'tv' } = await request.json();   // ← Accept mediaType
+  // Free tier limit only applies to non-paid users
+  if (!isPaid) {
+    const { data: existing } = await supabase
+      .from('user_shows')
+      .select('*')
+      .eq('user_id', userId);
 
-  console.log("Saving → tmdbId:", tmdbId, "| mediaType:", mediaType);
-
-  // Free tier check
-  const { data: existing } = await supabase
-    .from('user_shows')
-    .select('*')
-    .eq('user_id', userId);
-
-  if (existing && existing.length >= 5) {
-    return Response.json({ error: 'Free tier limit reached (5 shows). Upgrade for unlimited.' }, { status: 402 });
+    if (existing && existing.length >= 5) {
+      return Response.json({ error: 'Free tier limit reached (5 shows). Upgrade for unlimited.' }, { status: 402 });
+    }
   }
 
   const { error } = await supabase
     .from('user_shows')
-    .insert({ 
-      user_id: userId, 
-      tmdb_id: tmdbId,
-      media_type: mediaType          // ← Save it!
-    });
+    .insert({ user_id: userId, tmdb_id: tmdbId, media_type: mediaType });
 
-  if (error) {
-    return Response.json({ error: error.message }, { status: 400 });
-  }
+  if (error) return Response.json({ error: error.message }, { status: 400 });
 
   return Response.json({ success: true });
 }
