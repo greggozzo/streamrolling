@@ -6,8 +6,8 @@ export interface Show {
   title: string; // ← needed for tooltip
   service: string;
   window: { primarySubscribe: string };
-  favorite?: boolean;
-  watchLive?: boolean;
+  favorite: boolean;
+  watchLive: boolean;
 }
 
 export interface MonthPlan {

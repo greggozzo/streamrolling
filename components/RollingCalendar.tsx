@@ -30,7 +30,7 @@ export default function RollingCalendar({ shows }: Props) {
               <div className="text-xs text-zinc-500 mb-2 font-mono">
                 {formatMonth(month)}
               </div>
-
+		
               {service ? (
                 <>
                   <div className="bg-emerald-600 text-white text-sm font-medium py-4 px-5 rounded-2xl cursor-pointer">
@@ -69,6 +69,7 @@ export default function RollingCalendar({ shows }: Props) {
                           • {show.title}
                           {show.watchLive && ' 🔴'}
                           {show.favorite && !show.watchLive && ' ⭐'}
+			  console.log(calendar);
                         </div>
                       ))}
                     </div>

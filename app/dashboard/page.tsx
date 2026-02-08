@@ -52,10 +52,12 @@ export default function Dashboard() {
           return {
             ...details,
 	    // 🔥 normalize name here
-	    title: details.title || details.name,
+	    title: details.title || details.name, Unknown',
+
             window,
             service,
-            favorite: dbShow.favorite || false,
+
+            favorite: !!dbShow.favorite,
             watchLive: !!dbShow.watch_live,
             tmdb_id: dbShow.tmdb_id,
           };
