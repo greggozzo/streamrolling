@@ -11,16 +11,17 @@ export async function POST(request: Request) {
 
   const { tmdbId, mediaType = 'tv' } = await request.json();
 
-  // Check if user is paid
+  // Get paid status from Clerk
   let isPaid = false;
   try {
     const user = await clerkClient.users.getUser(userId);
     isPaid = (user.privateMetadata as any)?.isPaid === true;
+    console.log(`[add-show] User ${userId} → isPaid: ${isPaid}`);
   } catch (err) {
-    console.error("Clerk lookup failed:", err);
+    console.error("[add-show] Clerk lookup failed:", err);
   }
 
-  // Free tier limit only for non-paid users
+  // Enforce 5-show limit ONLY for non-paid users
   if (!isPaid) {
     const { data: existing } = await supabase
       .from('user_shows')
