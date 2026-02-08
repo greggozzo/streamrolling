@@ -1,156 +1,114 @@
-/* =========================================================
-   Types
-========================================================= */
+// lib/planner.ts
 
 export interface Show {
-  title: string; // ← needed for tooltip
+  title: string;
   service: string;
-  window: { primarySubscribe: string };
-  favorite?: boolean;
-  watchLive?: boolean;
+  window: {
+    primarySubscribe: string; // "Feb 2026"
+  };
 }
+
+/* ---------------------------------- */
+/* Month helpers                      */
+/* ---------------------------------- */
+
+const MONTHS: Record<string, number> = {
+  Jan: 0,
+  Feb: 1,
+  Mar: 2,
+  Apr: 3,
+  May: 4,
+  Jun: 5,
+  Jul: 6,
+  Aug: 7,
+  Sep: 8,
+  Oct: 9,
+  Nov: 10,
+  Dec: 11,
+};
+
+export const getNext12Months = () => {
+  const months: { label: string; key: string }[] = [];
+
+  const d = new Date();
+
+  for (let i = 0; i < 12; i++) {
+    const label = d.toLocaleString('default', {
+      month: 'short',
+      year: 'numeric',
+    });
+
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+    months.push({ label, key });
+
+    d.setMonth(d.getMonth() + 1);
+  }
+
+  return months;
+};
+
+/* ---------------------------------- */
+/* Safe month parsing                 */
+/* ---------------------------------- */
+
+const normalizeMonth = (str: string): string | null => {
+  if (!str || str === 'TBD') return null;
+
+  // "Feb 2026"
+  const [m, y] = str.split(' ');
+  const idx = MONTHS[m?.slice(0, 3)];
+
+  if (idx === undefined) return null;
+
+  return `${y}-${String(idx + 1).padStart(2, '0')}`;
+};
+
+/* ---------------------------------- */
+/* Planner logic                      */
+/* ---------------------------------- */
 
 export interface MonthPlan {
   service: string | null;
   shows: Show[];
 }
 
-export type Calendar = Record<string, MonthPlan>;
+export const buildRollingPlan = (shows: Show[]) => {
+  const months = getNext12Months();
 
-
-/* =========================================================
-   Month helpers
-========================================================= */
-
-export const monthKey = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-
-export const formatMonth = (key: string) => {
-  const [y, m] = key.split('-').map(Number);
-
-  return new Date(y, m - 1).toLocaleString('default', {
-    month: 'short',
-    year: 'numeric',
-  });
-};
-
-export const getNext12MonthKeys = () => {
-  const base = new Date();
-
-  return Array.from({ length: 12 }).map((_, i) =>
-    monthKey(new Date(base.getFullYear(), base.getMonth() + i, 1))
-  );
-};
-
-
-/* =========================================================
-   Helpers
-========================================================= */
-
-const normalizeMonth = (str: string): string | null => {
-  if (!str || str === 'TBD') return null;
-
-  const d = new Date(str);
-  if (Number.isNaN(d.getTime())) return null;
-
-  return monthKey(d);
-};
-
-const scoreShow = (show: Show) => {
-  if (show.watchLive) return 10;
-  if (show.favorite) return 5;
-  return 1;
-};
-
-
-/* =========================================================
-   MAIN OPTIMIZER (with show tracking)
-========================================================= */
-
-export function buildSubscriptionPlan(shows: Show[]): Calendar {
-  const months = getNext12MonthKeys();
-
-  const calendar: Calendar = {};
+  const plan: Record<string, MonthPlan> = {};
 
   months.forEach(m => {
-    calendar[m] = {
-      service: null,
-      shows: [],
-    };
+    plan[m.key] = { service: null, shows: [] };
   });
 
-  /*
-    service -> month -> { score, shows[] }
-  */
-  const scores: Record<
-    string,
-    Record<string, { score: number; shows: Show[] }>
-  > = {};
+  /* group shows by service + month */
+  const grouped: Record<string, Show[]> = {};
 
-  for (const show of shows) {
-    const month = normalizeMonth(show.window.primarySubscribe);
-    if (!month || !months.includes(month)) continue;
+  shows.forEach(show => {
+    const monthKey = normalizeMonth(show.window.primarySubscribe);
+    if (!monthKey) return;
 
-    if (!scores[show.service]) scores[show.service] = {};
-    if (!scores[show.service][month]) {
-      scores[show.service][month] = { score: 0, shows: [] };
-    }
+    const key = `${monthKey}---${show.service}`;
 
-    scores[show.service][month].score += scoreShow(show);
-    scores[show.service][month].shows.push(show);
-  }
+    if (!grouped[key]) grouped[key] = [];
 
-  /*
-    Sort services by total priority
-  */
-  const services = Object.entries(scores)
-    .map(([service, monthData]) => {
-      const totalScore = Object.values(monthData).reduce(
-        (sum, m) => sum + m.score,
-        0
-      );
+    grouped[key].push(show);
+  });
 
-      const sortedMonths = Object.entries(monthData).sort(
-        (a, b) => b[1].score - a[1].score
-      );
+  /* choose service with MOST shows each month */
+  Object.entries(grouped).forEach(([key, groupShows]) => {
+    const [monthKey, service] = key.split('---');
 
-      return {
+    const current = plan[monthKey];
+
+    if (!current || groupShows.length > current.shows.length) {
+      plan[monthKey] = {
         service,
-        totalScore,
-        choices: sortedMonths, // includes shows
+        shows: groupShows,
       };
-    })
-    .sort((a, b) => b.totalScore - a.totalScore);
-
-
-  /*
-    Greedy placement
-  */
-  for (const { service, choices } of services) {
-    let placed = false;
-
-    for (const [month, data] of choices) {
-      if (!calendar[month].service) {
-        calendar[month] = {
-          service,
-          shows: data.shows,
-        };
-        placed = true;
-        break;
-      }
     }
+  });
 
-    // fallback
-    if (!placed) {
-      const open = months.find(m => !calendar[m].service);
-      if (open) {
-        calendar[open] = {
-          service,
-          shows: [],
-        };
-      }
-    }
-  }
-
-  return calendar;
-}
+  return { months, plan };
+};
