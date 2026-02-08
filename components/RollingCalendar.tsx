@@ -15,7 +15,7 @@ interface Props {
 export default function RollingCalendar({ shows }: Props) {
   const months = useMemo(() => getNext12MonthKeys(), []);
   const calendar = useMemo(() => buildSubscriptionPlan(shows), [shows]);
-
+  console.log(calendar);
   return (
     <div className="mb-16">
       <h2 className="text-3xl font-bold mb-6">Your Rolling Plan</h2>
@@ -68,8 +68,7 @@ export default function RollingCalendar({ shows }: Props) {
                         <div key={show.title} className="text-zinc-400 mb-1">
                           • {show.title}
                           {show.watchLive && ' 🔴'}
-                          {show.favorite && !show.watchLive && ' ⭐'}
-			  console.log(calendar);
+                          {show.favorite && !show.watchLive && ' ⭐'}			  
                         </div>
                       ))}
                     </div>
