@@ -14,13 +14,12 @@ export async function POST(request: Request) {
   try {
     const user = await clerkClient.users.getUser(userId);
     isPaid = (user.privateMetadata as any)?.isPaid === true;
+    console.log(`User ${userId} → isPaid: ${isPaid}`);
   } catch (err) {
-    console.error("Clerk lookup failed:", err);
+    console.error("Clerk lookup error:", err);
   }
 
-  console.log(`User ${userId} → isPaid: ${isPaid}`);
-
-  // Enforce 5-show limit ONLY for non-paid users
+  // Free tier limit only applies to non-paid users
   if (!isPaid) {
     const { data: existing } = await supabase
       .from('user_shows')
@@ -41,7 +40,10 @@ export async function POST(request: Request) {
       media_type: mediaType 
     });
 
-  if (error) return Response.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.error("Supabase error:", error);
+    return Response.json({ error: error.message }, { status: 400 });
+  }
 
   return Response.json({ success: true });
 }
