@@ -52,7 +52,7 @@ export default function Dashboard() {
           return {
             ...details,
 	    // 🔥 normalize name here
-	    title: details.title || details.name, Unknown',
+	    title: details.title || details.name, 'Unknown',
 
             window,
             service,
