@@ -1,6 +1,5 @@
 // app/api/add-show/route.ts
 import { getAuth } from '@clerk/nextjs/server';
-import { clerkClient } from '@clerk/nextjs/server';
 import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
@@ -11,17 +10,12 @@ export async function POST(request: Request) {
 
   const { tmdbId, mediaType = 'tv' } = await request.json();
 
-  // Get paid status from Clerk
-  let isPaid = false;
-  try {
-    const user = await clerkClient.users.getUser(userId);
-    isPaid = (user.privateMetadata as any)?.isPaid === true;
-    console.log(`[add-show] User ${userId} → isPaid: ${isPaid}`);
-  } catch (err) {
-    console.error("[add-show] Clerk lookup failed:", err);
-  }
+  // Get isPaid from session claims (most reliable on custom domains)
+  const isPaid = (getAuth(request).sessionClaims?.privateMetadata as any)?.isPaid === true;
 
-  // Enforce 5-show limit ONLY for non-paid users
+  console.log(`[add-show] User ${userId} → isPaid: ${isPaid}`);
+
+  // Free tier limit only for non-paid users
   if (!isPaid) {
     const { data: existing } = await supabase
       .from('user_shows')
@@ -33,7 +27,6 @@ export async function POST(request: Request) {
     }
   }
 
-  // Save the show
   const { error } = await supabase
     .from('user_shows')
     .insert({
