@@ -5,21 +5,23 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   const { userId } = getAuth(request);
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!userId) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const { tmdbId, mediaType = 'tv' } = await request.json();
 
-  // Check paid status from Clerk
+  // Check paid status
   let isPaid = false;
   try {
     const user = await clerkClient.users.getUser(userId);
     isPaid = (user.privateMetadata as any)?.isPaid === true;
-    console.log(`User ${userId} → isPaid: ${isPaid}`);
+    console.log(`User ${userId} → isPaid = ${isPaid}`);
   } catch (err) {
-    console.error("Clerk lookup error:", err);
+    console.error("Clerk lookup failed:", err);
   }
 
-  // Free tier limit only applies to non-paid users
+  // Free tier limit only for non-paid users
   if (!isPaid) {
     const { data: existing } = await supabase
       .from('user_shows')
@@ -31,13 +33,13 @@ export async function POST(request: Request) {
     }
   }
 
-  // Save the show
+  // Save show
   const { error } = await supabase
     .from('user_shows')
-    .insert({ 
-      user_id: userId, 
+    .insert({
+      user_id: userId,
       tmdb_id: tmdbId,
-      media_type: mediaType 
+      media_type: mediaType
     });
 
   if (error) {
