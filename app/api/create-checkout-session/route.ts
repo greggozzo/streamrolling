@@ -7,8 +7,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export async function POST(request: Request) {
+  console.log("=== Checkout API Called ===");
+  console.log("STRIPE_SECRET_KEY exists:", !!process.env.STRIPE_SECRET_KEY);
+  console.log("STRIPE_PRICE_ID:", process.env.STRIPE_PRICE_ID || "MISSING");
+
   const { userId } = getAuth(request);
-  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!userId) {
+    console.log("ERROR: No userId from Clerk");
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -23,14 +30,13 @@ export async function POST(request: Request) {
       success_url: `${process.env.NEXT_PUBLIC_CLERK_BASE_URL}/dashboard?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_CLERK_BASE_URL}/upgrade?cancelled=true`,
       client_reference_id: userId,
-      metadata: {
-        userId: userId,
-      },
+      metadata: { userId },
     });
 
+    console.log("SUCCESS: Session created →", session.id);
     return Response.json({ sessionId: session.id });
-  } catch (error) {
-    console.error(error);
-    return Response.json({ error: 'Failed to create checkout session' }, { status: 500 });
+  } catch (error: any) {
+    console.error("STRIPE ERROR:", error.message);
+    return Response.json({ error: error.message }, { status: 500 });
   }
 }
