@@ -10,20 +10,38 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 export default function UpgradePage() {
   const { user } = useUser();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleUpgrade = async () => {
     setLoading(true);
+    setError('');
 
-    const res = await fetch('/api/create-checkout-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user?.id }),
-    });
+    try {
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id }),
+      });
 
-    const { sessionId } = await res.json();
+      const data = await res.json();
 
-    const stripe = await stripePromise;
-    await stripe?.redirectToCheckout({ sessionId });
+      if (!res.ok) throw new Error(data.error || 'Failed to create session');
+
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error('Stripe.js failed to load');
+
+      const { error: stripeError } = await stripe.redirectToCheckout({
+        sessionId: data.sessionId,
+      });
+
+      if (stripeError) throw stripeError;
+
+    } catch (err: any) {
+      console.error('Checkout error:', err);
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,15 +59,17 @@ export default function UpgradePage() {
           </ul>
         </div>
 
+        {error && <p className="text-red-400 mb-6 text-sm">{error}</p>}
+
         <button
           onClick={handleUpgrade}
           disabled={loading}
-          className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xl py-5 rounded-2xl transition-all disabled:opacity-50"
+          className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-700 text-black font-bold text-xl py-5 rounded-2xl transition-all"
         >
           {loading ? 'Redirecting to Stripe...' : 'Subscribe Now – $2.99/mo'}
         </button>
 
-        <p className="text-xs text-zinc-500 mt-6">Cancel anytime. Secure payment via Stripe.</p>
+        <p className="text-xs text-zinc-500 mt-6">Test Mode • Secure checkout via Stripe</p>
       </div>
     </div>
   );
