@@ -7,10 +7,10 @@ import { buildSubscriptionPlan, getNext12MonthKeys, formatMonth, Show } from '@/
 interface Props {
   shows: Show[];
 }
-
+// t
 export default function RollingCalendar({ shows }: Props) {
   const monthKeys = useMemo(() => getNext12MonthKeys(), []);
-  const plan = useMemo(() => buildSubscriptionPlan(shows), [shows]);
+  const plan = useMemo(() => buildSubscriptionPlan(shows), [shows]); 
 
   // Debug
   useEffect(() => {
