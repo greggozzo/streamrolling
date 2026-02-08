@@ -6,10 +6,6 @@ import { useMemo } from 'react';
 interface Show {
   service: string;
   window: { primarySubscribe: string };
-  favorite: boolean;
-  watch_live: boolean;
-  name?: string;
-  title?: string;
 }
 
 interface Props {
@@ -26,18 +22,23 @@ const getNext12Months = () => {
   return months;
 };
 
+const normalize = (monthStr: string): string => {
+  if (!monthStr) return '';
+  const [m, y] = monthStr.split(' ');
+  return `${m.slice(0,3)} ${y}`;
+};
+
 export default function RollingCalendar({ shows }: Props) {
   const months = useMemo(() => getNext12Months(), []);
 
-  // Group shows by month (stack same service)
-  const calendar: Record<string, { service: string; shows: Show[] }> = {};
+  const calendar: Record<string, string> = {};   // month → service
 
+  // Simple stacking logic
   shows.forEach(show => {
-    const month = show.window.primarySubscribe;
-    if (!calendar[month]) {
-      calendar[month] = { service: show.service, shows: [] };
+    const month = normalize(show.window.primarySubscribe);
+    if (month && !calendar[month]) {
+      calendar[month] = show.service;
     }
-    calendar[month].shows.push(show);
   });
 
   return (
@@ -45,20 +46,13 @@ export default function RollingCalendar({ shows }: Props) {
       <h2 className="text-3xl font-bold mb-6">Your Rolling Plan</h2>
       <div className="bg-zinc-900 rounded-3xl p-8 grid grid-cols-12 gap-3">
         {months.map(month => {
-          const entry = calendar[month];
+          const service = calendar[month];
           return (
-            <div key={month} className="text-center group relative">
+            <div key={month} className="text-center">
               <div className="text-xs text-zinc-500 mb-2 font-mono">{month}</div>
-
-              {entry ? (
-                <div className="bg-emerald-600 text-white text-sm font-medium py-4 px-5 rounded-2xl relative cursor-help"
-                     title={entry.shows.map(s => s.name || s.title).join(', ')}>
-                  {entry.service}
-                  {entry.shows.length > 1 && (
-                    <span className="absolute -top-1 -right-1 bg-white text-emerald-600 text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                      {entry.shows.length}
-                    </span>
-                  )}
+              {service ? (
+                <div className="bg-emerald-600 text-white text-sm font-medium py-4 px-5 rounded-2xl">
+                  {service}
                 </div>
               ) : (
                 <div className="text-zinc-600 text-sm py-4 border border-dashed border-zinc-700 rounded-2xl">
