@@ -22,22 +22,22 @@ const getNext12Months = () => {
   return months;
 };
 
-const normalize = (monthStr: string): string => {
-  if (!monthStr) return '';
-  const [m, y] = monthStr.split(' ');
-  return `${m.slice(0,3)} ${y}`;
+// Normalize "February 2026" → "Feb 2026"
+const normalizeMonth = (str: string): string => {
+  if (!str) return '';
+  const [monthName, year] = str.split(' ');
+  return `${monthName.slice(0, 3)} ${year}`;
 };
 
 export default function RollingCalendar({ shows }: Props) {
   const months = useMemo(() => getNext12Months(), []);
 
-  const calendar: Record<string, string> = {};   // month → service
+  const calendar: Record<string, string> = {};
 
-  // Simple stacking logic
   shows.forEach(show => {
-    const month = normalize(show.window.primarySubscribe);
-    if (month && !calendar[month]) {
-      calendar[month] = show.service;
+    const normalized = normalizeMonth(show.window.primarySubscribe);
+    if (normalized && !calendar[normalized]) {
+      calendar[normalized] = show.service;
     }
   });
 
