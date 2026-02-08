@@ -1,17 +1,15 @@
 // app/api/debug-paid/route.ts
 import { getAuth } from '@clerk/nextjs/server';
-import { clerkClient } from '@clerk/nextjs/server';
 
 export async function GET() {
   const { userId } = getAuth();
 
-  if (!userId) return Response.json({ error: 'Not signed in' }, { status: 401 });
-
-  const user = await clerkClient.users.getUser(userId);
+  if (!userId) {
+    return Response.json({ error: 'Not signed in', userId: null });
+  }
 
   return Response.json({
     userId,
-    isPaid: (user.privateMetadata as any)?.isPaid === true,
-    rawPrivateMetadata: user.privateMetadata,
+    message: "You are signed in. Now check Private Metadata in Clerk dashboard."
   });
 }
