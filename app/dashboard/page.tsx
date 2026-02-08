@@ -51,6 +51,8 @@ export default function Dashboard() {
 
           return {
             ...details,
+	    // 🔥 normalize name here
+	    title: details.title || details.name,
             window,
             service,
             favorite: dbShow.favorite || false,
