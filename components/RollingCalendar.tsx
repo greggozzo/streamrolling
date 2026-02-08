@@ -2,65 +2,63 @@
 'use client';
 
 import { useMemo } from 'react';
-import { buildRollingPlan, Show } from '@/lib/planner';
+import { buildSubscriptionPlan, getNext12MonthKeys, formatMonth, Show } from '@/lib/planner';
 
 interface Props {
   shows: Show[];
 }
 
 export default function RollingCalendar({ shows }: Props) {
-  const { months, plan } = useMemo(() => buildRollingPlan(shows), [shows]);
+  const monthKeys = useMemo(() => getNext12MonthKeys(), []);
+  const plan = useMemo(() => buildSubscriptionPlan(shows), [shows]);
 
   return (
     <div className="mb-16">
       <h2 className="text-3xl font-bold mb-6">Your Rolling Plan</h2>
 
-      <div className="bg-zinc-900 rounded-3xl p-8 grid grid-cols-12 gap-3 overflow-visible">
-        {months.map(month => {
-          const entry = plan[month.key];
+      <div className="bg-zinc-900 rounded-3xl p-8 grid grid-cols-12 gap-3">
+        {monthKeys.map(key => {
+          const entry = plan[key];
+          const monthLabel = formatMonth(key);
 
           return (
-            <div key={month.key} className="text-center relative group">
+            <div key={key} className="text-center group relative">
               <div className="text-xs text-zinc-500 mb-2 font-mono">
-                {month.label}
+                {monthLabel}
               </div>
 
-              {entry.service ? (
+              {entry?.service ? (
                 <>
-                  <div className="bg-emerald-600 text-white text-sm font-medium py-4 px-5 rounded-2xl cursor-pointer">
+                  <div className="bg-emerald-600 text-white text-sm font-medium py-4 px-5 rounded-2xl relative cursor-help">
                     {entry.service}
+
+                    {entry.shows.length > 1 && (
+                      <span className="absolute -top-1 -right-1 bg-white text-emerald-600 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                        {entry.shows.length}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Improved Tooltip */}
-                  {entry.shows && entry.shows.length > 0 && (
+                  {/* Hover Tooltip */}
+                  {entry.shows.length > 0 && (
                     <div className="
-                      absolute
+                      absolute hidden group-hover:block
                       left-1/2 -translate-x-1/2
-                      bottom-full
-                      mb-3
-                      w-64
-                      bg-zinc-800
-                      border border-zinc-700
-                      rounded-2xl
-                      p-4
-                      text-left text-xs
-                      shadow-2xl
-                      opacity-0
-                      group-hover:opacity-100
-                      transition-all
+                      bottom-full mb-3
+                      w-64 bg-zinc-800 border border-zinc-700
+                      rounded-2xl p-4 text-left shadow-2xl z-50
                       pointer-events-none
-                      z-50
                     ">
-                      <div className="text-emerald-400 font-semibold mb-3">
-                        {entry.service} — {month.label}
+                      <div className="text-emerald-400 font-semibold text-xs mb-3">
+                        {entry.service} — {monthLabel}
                       </div>
 
-                      <ul className="space-y-1 text-zinc-300">
-                        {entry.shows.map((s: any, i: number) => (
+                      <ul className="text-sm text-zinc-300 space-y-1">
+                        {entry.shows.map((s, i) => (
                           <li key={i} className="flex items-center gap-2">
-                            • {s.name || s.title}
+                            • {s.title}
                             {s.favorite && <span className="text-yellow-400">★</span>}
-                            {s.watch_live && <span className="text-red-400">🔴 Live</span>}
+                            {s.watchLive && <span className="text-red-400">🔴 Live</span>}
                           </li>
                         ))}
                       </ul>
