@@ -1,22 +1,33 @@
-// lib/planner.ts
+/* =========================================================
+   Types
+========================================================= */
 
 export interface Show {
+  title: string; // ← needed for tooltip
   service: string;
   window: { primarySubscribe: string };
   favorite?: boolean;
   watchLive?: boolean;
 }
 
-export type Calendar = Record<string, string[]>; // month -> services[]
+export interface MonthPlan {
+  service: string | null;
+  shows: Show[];
+}
+
+export type Calendar = Record<string, MonthPlan>;
 
 
-/* ---------------- helpers ---------------- */
+/* =========================================================
+   Month helpers
+========================================================= */
 
 export const monthKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
 export const formatMonth = (key: string) => {
   const [y, m] = key.split('-').map(Number);
+
   return new Date(y, m - 1).toLocaleString('default', {
     month: 'short',
     year: 'numeric',
@@ -24,90 +35,120 @@ export const formatMonth = (key: string) => {
 };
 
 export const getNext12MonthKeys = () => {
-  const months: string[] = [];
   const base = new Date();
 
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(base.getFullYear(), base.getMonth() + i, 1);
-    months.push(monthKey(d));
-  }
-
-  return months;
+  return Array.from({ length: 12 }).map((_, i) =>
+    monthKey(new Date(base.getFullYear(), base.getMonth() + i, 1))
+  );
 };
+
+
+/* =========================================================
+   Helpers
+========================================================= */
 
 const normalizeMonth = (str: string): string | null => {
   if (!str || str === 'TBD') return null;
 
-  const date = new Date(str);
-  if (Number.isNaN(date.getTime())) return null;
+  const d = new Date(str);
+  if (Number.isNaN(d.getTime())) return null;
 
-  return monthKey(date);
+  return monthKey(d);
 };
-
-
-/* ---------------- scoring ---------------- */
 
 const scoreShow = (show: Show) => {
-  let score = 1;
-
-  if (show.favorite) score += 3;
-  if (show.watchLive) score += 5;
-
-  return score;
+  if (show.watchLive) return 10;
+  if (show.favorite) return 5;
+  return 1;
 };
 
 
-/* ---------------- planner ---------------- */
+/* =========================================================
+   MAIN OPTIMIZER (with show tracking)
+========================================================= */
 
 export function buildSubscriptionPlan(shows: Show[]): Calendar {
   const months = getNext12MonthKeys();
 
   const calendar: Calendar = {};
-  months.forEach(m => (calendar[m] = []));
+
+  months.forEach(m => {
+    calendar[m] = {
+      service: null,
+      shows: [],
+    };
+  });
 
   /*
-    Step 1 — group by service + month
-    service -> month -> score
+    service -> month -> { score, shows[] }
   */
-  const serviceMap: Record<string, Record<string, number>> = {};
+  const scores: Record<
+    string,
+    Record<string, { score: number; shows: Show[] }>
+  > = {};
 
   for (const show of shows) {
     const month = normalizeMonth(show.window.primarySubscribe);
     if (!month || !months.includes(month)) continue;
 
-    if (!serviceMap[show.service]) serviceMap[show.service] = {};
-    if (!serviceMap[show.service][month]) serviceMap[show.service][month] = 0;
-
-    serviceMap[show.service][month] += scoreShow(show);
-  }
-
-  /*
-    Step 2 — place services into calendar
-  */
-  for (const [service, monthScores] of Object.entries(serviceMap)) {
-    const entries = Object.entries(monthScores);
-
-    if (entries.length === 0) continue;
-
-    // sort by highest priority first
-    entries.sort((a, b) => b[1] - a[1]);
-
-    // add service to all months it has shows
-    for (const [month] of entries) {
-      calendar[month].push(service);
+    if (!scores[show.service]) scores[show.service] = {};
+    if (!scores[show.service][month]) {
+      scores[show.service][month] = { score: 0, shows: [] };
     }
+
+    scores[show.service][month].score += scoreShow(show);
+    scores[show.service][month].shows.push(show);
   }
 
   /*
-    Step 3 — guarantee at least one month per service
+    Sort services by total priority
   */
-  for (const service of Object.keys(serviceMap)) {
-    const alreadyPlaced = Object.values(calendar).some(list =>
-      list.includes(service)
-    );
+  const services = Object.entries(scores)
+    .map(([service, monthData]) => {
+      const totalScore = Object.values(monthData).reduce(
+        (sum, m) => sum + m.score,
+        0
+      );
 
-    if (!alreadyPlaced) {
-      calendar[months[0]].push(service);
+      const sortedMonths = Object.entries(monthData).sort(
+        (a, b) => b[1].score - a[1].score
+      );
+
+      return {
+        service,
+        totalScore,
+        choices: sortedMonths, // includes shows
+      };
+    })
+    .sort((a, b) => b.totalScore - a.totalScore);
+
+
+  /*
+    Greedy placement
+  */
+  for (const { service, choices } of services) {
+    let placed = false;
+
+    for (const [month, data] of choices) {
+      if (!calendar[month].service) {
+        calendar[month] = {
+          service,
+          shows: data.shows,
+        };
+        placed = true;
+        break;
+      }
+    }
+
+    // fallback
+    if (!placed) {
+      const open = months.find(m => !calendar[m].service);
+      if (open) {
+        calendar[open] = {
+          service,
+          shows: [],
+        };
+      }
     }
   }
 
