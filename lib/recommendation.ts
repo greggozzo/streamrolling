@@ -1,41 +1,71 @@
 // lib/recommendation.ts
+import {
+  addMonths,
+  format,
+  parseISO,
+  startOfMonth,
+  isBefore,
+} from 'date-fns';
 
-export function calculateSubscriptionWindow(episodes: any[], isMovie = false) {
-  // === Case 1: Movie / Stand-up Special ===
-  if (isMovie || !episodes || episodes.length === 0) {
+export function calculateSubscriptionWindow(episodes: any[]) {
+  if (!episodes || episodes.length === 0) {
     return {
-      primarySubscribe: "Watch Now",
-      primaryCancel: "N/A",
-      isComplete: true,
-      primaryLabel: "Watch Now",
+      primarySubscribe: 'TBD',
+      primaryCancel: 'TBD',
+      primaryLabel: 'Subscribe in',
+      primaryNote: '',
       secondarySubscribe: null,
+      firstDate: 'TBD',
+      lastDate: 'TBD',
+      isComplete: false,
     };
   }
 
-  // === Case 2: TV Show ===
-  const firstAir = new Date(episodes[0].air_date);
-  const lastAir = new Date(episodes[episodes.length - 1].air_date);
+  const today = new Date();
+  const dates = episodes
+    .map((e) => parseISO(e.air_date))
+    .filter(Boolean)
+    .sort((a, b) => a.getTime() - b.getTime());
 
-  const firstMonth = firstAir.toLocaleString('default', { month: 'long', year: 'numeric' });
-  const lastMonth = lastAir.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const first = dates[0];
+  const last = dates[dates.length - 1];
+  const isComplete = isBefore(last, today) || last.toDateString() === today.toDateString();
 
-  const isComplete = lastAir < new Date();
+  const firstDate = format(first, 'MMM d');
+  const lastDate = format(last, 'MMM d');
 
   if (isComplete) {
+    // Season is fully out → "Watch now"
+    let bingeMonth = startOfMonth(today);
+
+    // Special rule: if finale was in current month AND after the 15th → shift to next full month
+    if (last.getMonth() === today.getMonth() && last.getDate() > 15) {
+      bingeMonth = addMonths(bingeMonth, 1);
+    }
+
     return {
-      primarySubscribe: firstMonth,
-      primaryCancel: lastMonth,
-      isComplete: true,
-      primaryLabel: "Binge Now",
+      primarySubscribe: format(bingeMonth, 'MMMM yyyy'),
+      primaryCancel: format(addMonths(bingeMonth, 1), 'MMMM yyyy'),
+      primaryLabel: 'Watch now',
+      primaryNote: 'Season is complete – binge it in one month',
       secondarySubscribe: null,
+      firstDate,
+      lastDate,
+      isComplete: true,
+    };
+  } else {
+    // Future or airing now → classic binge-after-finale
+    const bingeMonth = addMonths(last, 1);
+
+    return {
+      primarySubscribe: format(bingeMonth, 'MMMM yyyy'),
+      primaryCancel: format(addMonths(bingeMonth, 1), 'MMMM yyyy'),
+      primaryLabel: 'Subscribe in',
+      primaryNote: 'Binge the whole season in one month → cancel next month',
+      secondarySubscribe: format(first, 'MMMM yyyy'),
+      firstDate,
+      lastDate,
+      isComplete: false,
     };
   }
-
-  return {
-    primarySubscribe: lastMonth,
-    primaryCancel: lastMonth,
-    isComplete: false,
-    primaryLabel: "Subscribe in",
-    secondarySubscribe: firstMonth,
-  };
 }
