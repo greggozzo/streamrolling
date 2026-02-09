@@ -4,6 +4,12 @@
 import { useMemo } from 'react';
 import { buildRollingPlan, Show } from '@/lib/planner';
 
+/** Get display name from a show (TMDB uses name for TV, title for movies; dashboard may pass either). */
+function showDisplayName(s: Show | Record<string, unknown>): string {
+  const t = s as Record<string, unknown>;
+  return (t.title as string) || (t.name as string) || (t.original_title as string) || (t.original_name as string) || 'Unknown';
+}
+
 interface Props {
   shows: Show[];
 }
@@ -50,9 +56,9 @@ export default function RollingCalendar({ shows }: Props) {
                       </div>
                       <ul className="space-y-1.5 text-zinc-300">
                         {entry.shows.map((s, i) => (
-                          <li key={i} className="flex items-center gap-2 flex-wrap">
+                          <li key={(s as any).tmdb_id ?? (s as any).id ?? i} className="flex items-center gap-2 flex-wrap">
                             <span className="text-zinc-500">•</span>
-                            <span>{(s as Show).title || (s as any).name}</span>
+                            <span className="text-zinc-200">{showDisplayName(s)}</span>
                             {(s as Show).favorite && <span className="text-yellow-400" aria-label="Favorite">★</span>}
                             {((s as Show).watchLive || (s as any).watch_live) && <span className="text-red-400">🔴 Live</span>}
                           </li>
