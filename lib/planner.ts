@@ -3,9 +3,13 @@
 ========================================================= */
 
 export interface Show {
-  title: string; // ← needed for tooltip
+  title: string;
   service: string;
-  window: { primarySubscribe: string };
+  window: {
+    primarySubscribe: string;
+    /** Month of first episode (debut); used when watchLive is true. */
+    secondarySubscribe?: string;
+  };
   favorite: boolean;
   watchLive: boolean;
 }
@@ -88,7 +92,11 @@ export function buildSubscriptionPlan(shows: Show[]): Calendar {
   > = {};
 
   for (const show of shows) {
-    const month = normalizeMonth(show.window.primarySubscribe);
+    // Watch Live → subscribe in the month the show debuts; otherwise use binge recommendation.
+    const subscribeMonthStr = show.watchLive && show.window.secondarySubscribe
+      ? show.window.secondarySubscribe
+      : show.window.primarySubscribe;
+    const month = normalizeMonth(subscribeMonthStr);
     if (!month || !months.includes(month)) continue;
 
     if (!scores[show.service]) scores[show.service] = {};

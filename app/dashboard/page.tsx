@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
@@ -92,7 +92,7 @@ export default function Dashboard() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tmdbId, watchLive: !current }),
     });
-    setShows(shows.map(s => s.tmdb_id === tmdbId ? { ...s, watch_live: !current } : s));
+    setShows(shows.map(s => s.tmdb_id === tmdbId ? { ...s, watchLive: !current } : s));
   };
 
   const removeShow = async (tmdbId: number) => {
@@ -168,13 +168,13 @@ export default function Dashboard() {
                   </button>
 
                   <button
-                    onClick={() => toggleWatchLive(show.tmdb_id, show.watch_live)}
+                    onClick={() => toggleWatchLive(show.tmdb_id, show.watchLive ?? show.watch_live)}
                     disabled={show.window.isComplete}
                     className={`text-sm px-5 py-2 rounded-xl border transition-colors ${
-                      show.watch_live 
-                        ? 'bg-emerald-600 text-white border-emerald-600' 
-                        : show.window.isComplete 
-                          ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed line-through' 
+                      show.watchLive ?? show.watch_live
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : show.window.isComplete
+                          ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed line-through'
                           : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'
                     }`}
                   >
