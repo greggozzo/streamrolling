@@ -31,36 +31,30 @@ export default function RollingCalendar({ shows }: Props) {
                     {entry.service}
                   </div>
 
-                  {/* Improved Tooltip */}
+                  {/* Tooltip: list shows on hover */}
                   {entry.shows && entry.shows.length > 0 && (
-                    <div className="
-                      absolute
-                      left-1/2 -translate-x-1/2
-                      bottom-full
-                      mb-3
-                      w-64
-                      bg-zinc-800
-                      border border-zinc-700
-                      rounded-2xl
-                      p-4
-                      text-left text-xs
-                      shadow-2xl
-                      opacity-0
-                      group-hover:opacity-100
-                      transition-all
-                      pointer-events-none
-                      z-50
-                    ">
-                      <div className="text-emerald-400 font-semibold mb-3">
+                    <div
+                      className="
+                        absolute left-1/2 -translate-x-1/2 bottom-full mb-3
+                        w-72 max-h-80 overflow-y-auto
+                        bg-zinc-800 border border-zinc-700 rounded-2xl p-4
+                        text-left text-xs shadow-2xl
+                        opacity-0 invisible group-hover:opacity-100 group-hover:visible
+                        transition-opacity duration-150 delay-75
+                        pointer-events-none z-50
+                      "
+                      role="tooltip"
+                    >
+                      <div className="text-emerald-400 font-semibold mb-3 sticky top-0 bg-zinc-800 pb-1">
                         {entry.service} — {month.label}
                       </div>
-
-                      <ul className="space-y-1 text-zinc-300">
-                        {entry.shows.map((s: any, i: number) => (
-                          <li key={i} className="flex items-center gap-2">
-                            • {s.name || s.title}
-                            {s.favorite && <span className="text-yellow-400">★</span>}
-                            {s.watch_live && <span className="text-red-400">🔴 Live</span>}
+                      <ul className="space-y-1.5 text-zinc-300">
+                        {entry.shows.map((s, i) => (
+                          <li key={i} className="flex items-center gap-2 flex-wrap">
+                            <span className="text-zinc-500">•</span>
+                            <span>{(s as Show).title || (s as any).name}</span>
+                            {(s as Show).favorite && <span className="text-yellow-400" aria-label="Favorite">★</span>}
+                            {((s as Show).watchLive || (s as any).watch_live) && <span className="text-red-400">🔴 Live</span>}
                           </li>
                         ))}
                       </ul>

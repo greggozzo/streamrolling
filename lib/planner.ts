@@ -154,3 +154,14 @@ export function buildSubscriptionPlan(shows: Show[]): Calendar {
 
   return calendar;
 }
+
+/** Builds the rolling plan and month list for the calendar UI. */
+export function buildRollingPlan(shows: Show[]) {
+  const plan = buildSubscriptionPlan(shows);
+  const monthKeys = getNext12MonthKeys();
+  const months = monthKeys.map(key => ({
+    key,
+    label: formatMonth(key),
+  }));
+  return { months, plan };
+}
