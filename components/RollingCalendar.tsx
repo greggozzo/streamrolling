@@ -37,35 +37,39 @@ export default function RollingCalendar({ shows }: Props) {
                     {entry.service}
                   </div>
 
-                  {/* Tooltip: list shows on hover */}
-                  {entry.shows && entry.shows.length > 0 && (
-                    <div
-                      className="
-                        absolute left-1/2 -translate-x-1/2 bottom-full mb-3
-                        w-72 max-h-80 overflow-y-auto
-                        bg-zinc-800 border border-zinc-700 rounded-2xl p-4
-                        text-left text-xs shadow-2xl
-                        opacity-0 invisible group-hover:opacity-100 group-hover:visible
-                        transition-opacity duration-150 delay-75
-                        pointer-events-none z-50
-                      "
-                      role="tooltip"
-                    >
-                      <div className="text-emerald-400 font-semibold mb-3 sticky top-0 bg-zinc-800 pb-1">
-                        {entry.service} — {month.label}
+                  {/* Tooltip: list ALL shows for this service (from full list), not just this month */}
+                  {(() => {
+                    const showsForService = shows.filter(s => (s as Show).service === entry.service);
+                    if (showsForService.length === 0) return null;
+                    return (
+                      <div
+                        className="
+                          absolute left-1/2 -translate-x-1/2 bottom-full mb-3
+                          w-72 max-h-80 overflow-y-auto
+                          bg-zinc-800 border border-zinc-700 rounded-2xl p-4
+                          text-left text-xs shadow-2xl
+                          opacity-0 invisible group-hover:opacity-100 group-hover:visible
+                          transition-opacity duration-150 delay-75
+                          pointer-events-none z-50
+                        "
+                        role="tooltip"
+                      >
+                        <div className="text-emerald-400 font-semibold mb-3 sticky top-0 bg-zinc-800 pb-1">
+                          {entry.service} — {month.label}
+                        </div>
+                        <ul className="space-y-1.5 text-zinc-300">
+                          {showsForService.map((s, i) => (
+                            <li key={(s as any).tmdb_id ?? (s as any).id ?? i} className="flex items-center gap-2 flex-wrap">
+                              <span className="text-zinc-500">•</span>
+                              <span className="text-zinc-200">{showDisplayName(s)}</span>
+                              {(s as Show).favorite && <span className="text-yellow-400" aria-label="Favorite">★</span>}
+                              {((s as Show).watchLive || (s as any).watch_live) && <span className="text-red-400">🔴 Live</span>}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                      <ul className="space-y-1.5 text-zinc-300">
-                        {entry.shows.map((s, i) => (
-                          <li key={(s as any).tmdb_id ?? (s as any).id ?? i} className="flex items-center gap-2 flex-wrap">
-                            <span className="text-zinc-500">•</span>
-                            <span className="text-zinc-200">{showDisplayName(s)}</span>
-                            {(s as Show).favorite && <span className="text-yellow-400" aria-label="Favorite">★</span>}
-                            {((s as Show).watchLive || (s as any).watch_live) && <span className="text-red-400">🔴 Live</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </>
               ) : (
                 <div className="text-zinc-600 text-sm py-4 border border-dashed border-zinc-700 rounded-2xl">
