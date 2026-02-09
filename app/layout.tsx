@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: 'Streamrolling',
   description: 'Never pay for more than one streaming service at a time',
   icons: { icon: '/favicon.ico' },
-  other: { 'fo-verify': 'a9c46ac4-ec87-4cf6-9d02-bb3a69b90f90' },
+  other: { 'impact-site-verification' value='2c6441b1-15ea-4cfb-bda4-f94e886582f8' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
