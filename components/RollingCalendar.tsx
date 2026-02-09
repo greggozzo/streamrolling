@@ -10,6 +10,17 @@ function showDisplayName(s: Show | Record<string, unknown>): string {
   return (t.title as string) || (t.name as string) || (t.original_title as string) || (t.original_name as string) || 'Unknown';
 }
 
+/** Normalize for service name comparison (casing, whitespace). */
+function normalizeServiceName(name: string | null | undefined): string {
+  return (name ?? '').toString().trim().toLowerCase();
+}
+
+/** True if this show belongs to the given service (handles different property names). */
+function showBelongsToService(s: Record<string, unknown>, entryService: string): boolean {
+  const service = (s.service ?? s.provider_name ?? '') as string;
+  return normalizeServiceName(service) === normalizeServiceName(entryService);
+}
+
 interface Props {
   shows: Show[];
 }
@@ -37,9 +48,9 @@ export default function RollingCalendar({ shows }: Props) {
                     {entry.service}
                   </div>
 
-                  {/* Tooltip: list ALL shows for this service (from full list), not just this month */}
+                  {/* Tooltip: list ALL shows for this service (from full list) */}
                   {(() => {
-                    const showsForService = shows.filter(s => (s as Show).service === entry.service);
+                    const showsForService = shows.filter(s => showBelongsToService(s as unknown as Record<string, unknown>, entry.service!));
                     if (showsForService.length === 0) return null;
                     return (
                       <div
@@ -59,7 +70,7 @@ export default function RollingCalendar({ shows }: Props) {
                         </div>
                         <ul className="space-y-1.5 text-zinc-300">
                           {showsForService.map((s, i) => (
-                            <li key={(s as any).tmdb_id ?? (s as any).id ?? i} className="flex items-center gap-2 flex-wrap">
+                            <li key={`${month.key}-${(s as any).tmdb_id ?? (s as any).id ?? i}`} className="flex items-center gap-2 flex-wrap">
                               <span className="text-zinc-500">•</span>
                               <span className="text-zinc-200">{showDisplayName(s)}</span>
                               {(s as Show).favorite && <span className="text-yellow-400" aria-label="Favorite">★</span>}
