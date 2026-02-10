@@ -1,6 +1,6 @@
  'use client';
 
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
@@ -12,11 +12,27 @@ import SearchBar from '@/components/SearchBar';
 
 export default function Dashboard() {
   const { userId, isLoaded } = useAuth();
-  const { user } = useUser();
   const [shows, setShows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  // publicMetadata is readable on the frontend; privateMetadata is server-only
-  const isPaid = (user?.publicMetadata as Record<string, unknown> | undefined)?.isPaid === true;
+  const [isPaid, setIsPaid] = useState(false);
+
+  useEffect(() => {
+    if (!isLoaded || !userId) {
+      setLoading(false);
+      return;
+    }
+
+    async function loadSubscriptionStatus() {
+      try {
+        const res = await fetch('/api/subscription-status');
+        const data = await res.json();
+        setIsPaid(data.isPaid === true);
+      } catch {
+        setIsPaid(false);
+      }
+    }
+    loadSubscriptionStatus();
+  }, [userId, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded || !userId) {
@@ -134,10 +150,11 @@ export default function Dashboard() {
           <div className="flex shrink-0">
           {isPaid ? (
             <button
-              onClick={() => window.location.href = 'https://billing.stripe.com/p/login/test_...'} // replace with your Stripe Customer Portal URL
+              type="button"
+              onClick={() => { window.location.href = 'https://billing.stripe.com/p/login/test_...'; }} // replace with your Stripe Customer Portal URL
               className="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-bold text-sm sm:text-base"
             >
-              Cancel
+              Cancel membership
             </button>
           ) : (
             <Link href="/upgrade" className="block w-full sm:w-auto text-center bg-emerald-500 text-black px-6 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-bold text-sm sm:text-base">
