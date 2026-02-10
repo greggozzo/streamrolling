@@ -15,7 +15,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = await clerkClient.users.getUser(userId);
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
     const privateMeta = user.privateMetadata as Record<string, unknown> | undefined;
     const subscriptionId = privateMeta?.stripeSubscriptionId as string | undefined;
 

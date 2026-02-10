@@ -26,10 +26,11 @@ export async function POST(req: Request) {
     const subscriptionId = session.subscription as string | undefined;
 
     if (userId) {
-      const existing = await clerkClient.users.getUser(userId);
+      const clerk = await clerkClient();
+      const existing = await clerk.users.getUser(userId);
       const existingPublic = (existing.publicMetadata || {}) as Record<string, unknown>;
       const existingPrivate = (existing.privateMetadata || {}) as Record<string, unknown>;
-      await clerkClient.users.updateUser(userId, {
+      await clerk.users.updateUser(userId, {
         publicMetadata: { ...existingPublic, isPaid: true },
         privateMetadata: {
           ...existingPrivate,
@@ -47,10 +48,11 @@ export async function POST(req: Request) {
     const userId = subscription.metadata?.userId as string | undefined;
 
     if (userId) {
-      const existing = await clerkClient.users.getUser(userId);
+      const clerk = await clerkClient();
+      const existing = await clerk.users.getUser(userId);
       const existingPublic = (existing.publicMetadata || {}) as Record<string, unknown>;
       const existingPrivate = (existing.privateMetadata || {}) as Record<string, unknown>;
-      await clerkClient.users.updateUser(userId, {
+      await clerk.users.updateUser(userId, {
         publicMetadata: { ...existingPublic, isPaid: false },
         privateMetadata: { ...existingPrivate, isPaid: false, stripeSubscriptionId: undefined },
       });

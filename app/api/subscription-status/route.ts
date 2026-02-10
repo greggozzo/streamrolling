@@ -10,7 +10,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const user = await clerkClient.users.getUser(userId);
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
     const publicMeta = user.publicMetadata as Record<string, unknown> | undefined;
     const privateMeta = user.privateMetadata as Record<string, unknown> | undefined;
 
