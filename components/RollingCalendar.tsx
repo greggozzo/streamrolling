@@ -35,13 +35,13 @@ export default function RollingCalendar({ shows }: Props) {
       <div className="bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-8 overflow-visible">
         <div
           className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-12 gap-2 sm:gap-3 min-w-0"
-          style={{ gridAutoRows: 'minmax(3.25rem, auto)' }}
+          style={{ gridAutoRows: 'minmax(3.25rem, auto)', WebkitGridAutoRows: 'minmax(3.25rem, auto)' }}
         >
         {months.map(month => {
           const entry = plan[month.key];
 
           return (
-            <div key={month.key} className="flex flex-col items-stretch text-center relative group min-w-0 overflow-visible" style={{ minHeight: '4.5rem' }}>
+            <div key={month.key} className="flex flex-col items-stretch text-center relative group min-w-0 overflow-visible" style={{ minHeight: '4.5rem', WebkitMinHeight: '4.5rem' }}>
               <div className="text-[10px] sm:text-xs text-zinc-500 mb-1.5 sm:mb-2 font-mono w-full truncate shrink-0" title={month.label}>
                 {month.label}
               </div>
@@ -49,10 +49,10 @@ export default function RollingCalendar({ shows }: Props) {
               {entry.service ? (
                 <>
                   <div
-                    className="w-full flex items-center justify-center bg-emerald-600 text-white text-xs sm:text-sm font-medium py-3 sm:py-4 px-2 sm:px-5 rounded-xl sm:rounded-2xl cursor-pointer shrink-0"
-                    style={{ minHeight: '52px', flexBasis: '52px' }}
+                    className="w-full min-w-0 flex items-center justify-center bg-emerald-600 text-white text-[10px] sm:text-xs font-medium py-2.5 sm:py-3 px-1.5 sm:px-3 rounded-xl sm:rounded-2xl cursor-pointer shrink-0 overflow-hidden"
+                    style={{ minHeight: '52px', flexBasis: '52px', WebkitMinHeight: '52px' }}
                   >
-                    <span className="break-words text-center leading-tight block">{entry.service}</span>
+                    <span className="truncate block w-full text-center px-0.5" title={entry.service}>{entry.service}</span>
                   </div>
                   {entry.alsoWatchLive && entry.alsoWatchLive.length > 0 && (
                     <p className="mt-1 sm:mt-1.5 text-[10px] text-amber-400/90 leading-tight px-0.5 sm:px-1">
@@ -95,7 +95,7 @@ export default function RollingCalendar({ shows }: Props) {
                   })()}
                 </>
               ) : (
-                <div className="w-full flex items-center justify-center text-zinc-600 text-xs sm:text-sm py-3 sm:py-4 border border-dashed border-zinc-700 rounded-xl sm:rounded-2xl shrink-0" style={{ minHeight: '52px' }}>
+                <div className="w-full flex items-center justify-center text-zinc-600 text-xs sm:text-sm py-2.5 sm:py-3 border border-dashed border-zinc-700 rounded-xl sm:rounded-2xl shrink-0 overflow-hidden" style={{ minHeight: '52px', WebkitMinHeight: '52px' }}>
                   Open
                 </div>
               )}

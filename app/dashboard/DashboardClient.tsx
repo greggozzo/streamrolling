@@ -26,6 +26,9 @@ export default function DashboardClient({
   const [isPaid, setIsPaid] = useState(initialIsPaid);
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(initialCancelAtPeriodEnd);
   const [cancelling, setCancelling] = useState(false);
+  type ViewMode = 'cards' | 'compact' | 'list';
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [draggedId, setDraggedId] = useState<number | null>(null);
 
   useEffect(() => {
     setIsPaid(initialIsPaid);
@@ -42,7 +45,8 @@ export default function DashboardClient({
       const { data } = await supabase
         .from('user_shows')
         .select('*')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .order('sort_order', { ascending: true });
 
       const loaded = await Promise.all(
         (data || []).map(async (dbShow: any, index: number) => {
@@ -125,6 +129,43 @@ export default function DashboardClient({
     setShows(shows.filter(s => s.tmdb_id !== tmdbId));
   };
 
+  const handleReorder = async (reordered: any[]) => {
+    setShows(reordered);
+    try {
+      await fetch('/api/shows-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: reordered.map((s) => s.tmdb_id) }),
+      });
+    } catch (e) {
+      console.error('Failed to save order', e);
+    }
+  };
+
+  const onDragStart = (e: React.DragEvent, tmdbId: number) => {
+    setDraggedId(tmdbId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(tmdbId));
+  };
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+  const onDragEnd = () => setDraggedId(null);
+  const onDrop = (e: React.DragEvent, targetTmdbId: number) => {
+    e.preventDefault();
+    const sourceId = Number(e.dataTransfer.getData('text/plain'));
+    if (!sourceId || sourceId === targetTmdbId) return;
+    const idx = shows.findIndex((s) => s.tmdb_id === sourceId);
+    const targetIdx = shows.findIndex((s) => s.tmdb_id === targetTmdbId);
+    if (idx === -1 || targetIdx === -1) return;
+    const next = [...shows];
+    const [removed] = next.splice(idx, 1);
+    next.splice(targetIdx, 0, removed);
+    handleReorder(next);
+    setDraggedId(null);
+  };
+
   const cancelSubscription = async () => {
     if (!confirm('Cancel at end of billing period? You’ll keep access until then.')) return;
     setCancelling(true);
@@ -159,7 +200,23 @@ export default function DashboardClient({
 
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mt-10 sm:mt-16 mb-6 sm:mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold">My Shows ({shows.length})</h2>
+          <div className="flex flex-wrap items-center gap-4">
+            <h2 className="text-2xl sm:text-3xl font-bold">My Shows ({shows.length})</h2>
+            <div className="flex rounded-xl border border-zinc-700 p-1 bg-zinc-900/80">
+              {(['cards', 'compact', 'list'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setViewMode(mode)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
+                    viewMode === mode ? 'bg-emerald-600 text-white' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {mode === 'cards' ? 'Cards' : mode === 'compact' ? 'Compact' : 'List'}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="flex shrink-0">
           {isPaid && cancelAtPeriodEnd ? (
@@ -193,49 +250,101 @@ export default function DashboardClient({
           </button>
         )}
 
-        {/* Show Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">
-          {shows.map(show => (
-            <div key={show.id} className="bg-zinc-900 rounded-3xl overflow-hidden group relative">
-              <ShowCard show={show} />
-
-              <div className="p-6">
-                <p className="text-emerald-400 font-bold">
-                  Cancel {show.service} by {show.window.primaryCancel}
-                </p>
-
-                <div className="flex gap-4 mt-5">
-                  <button
-                    onClick={() => toggleFavorite(show.tmdb_id, show.favorite)}
-                    className={`text-3xl transition-all ${show.favorite ? 'text-yellow-400 scale-110' : 'text-zinc-600 hover:text-yellow-400'}`}
-                  >
-                    ★
-                  </button>
-
-                  <button
-                    onClick={() => toggleWatchLive(show.tmdb_id, show.watchLive ?? show.watch_live)}
-                    disabled={show.window.isComplete}
-                    className={`text-sm px-5 py-2 rounded-xl border transition-colors ${
-                      show.watchLive ?? show.watch_live
-                        ? 'bg-emerald-600 text-white border-emerald-600'
-                        : show.window.isComplete
-                          ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed line-through'
-                          : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'
-                    }`}
-                  >
-                    {show.window.isComplete ? 'Completed' : 'Watch Live'}
-                  </button>
-
-                  <button
-                    onClick={() => removeShow(show.tmdb_id)}
-                    className="text-red-400 hover:text-red-300 text-sm px-5 py-2 rounded-xl border border-red-900 hover:bg-red-950 transition-colors"
-                  >
-                    Remove
-                  </button>
+        {/* Show Cards / List — draggable to reorder */}
+        <div
+          className={
+            viewMode === 'list'
+              ? 'flex flex-col gap-2'
+              : viewMode === 'compact'
+                ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4'
+                : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8'
+          }
+        >
+          {shows.map((show) => {
+            const isDragging = draggedId === show.tmdb_id;
+            const cardContent = (
+              <>
+                {viewMode !== 'list' && <ShowCard show={show} compact={viewMode === 'compact'} />}
+                <div className={viewMode === 'compact' ? 'p-3' : 'p-6'}>
+                  <p className={`text-emerald-400 font-bold ${viewMode === 'compact' ? 'text-sm' : ''}`}>
+                    Cancel {show.service} by {show.window.primaryCancel}
+                  </p>
+                  <div className={`flex flex-wrap gap-2 sm:gap-4 mt-5 ${viewMode === 'compact' ? 'mt-3' : ''}`}>
+                    <button
+                      onClick={() => toggleFavorite(show.tmdb_id, show.favorite)}
+                      className={`text-2xl sm:text-3xl transition-all ${show.favorite ? 'text-yellow-400 scale-110' : 'text-zinc-600 hover:text-yellow-400'} ${viewMode === 'compact' ? 'text-xl' : ''}`}
+                    >
+                      ★
+                    </button>
+                    <button
+                      onClick={() => toggleWatchLive(show.tmdb_id, show.watchLive ?? show.watch_live)}
+                      disabled={show.window.isComplete}
+                      className={`text-sm px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl border transition-colors ${
+                        show.watchLive ?? show.watch_live
+                          ? 'bg-emerald-600 text-white border-emerald-600'
+                          : show.window.isComplete
+                            ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed line-through'
+                            : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'
+                      } ${viewMode === 'compact' ? 'text-xs px-2 py-1' : ''}`}
+                    >
+                      {show.window.isComplete ? 'Completed' : 'Watch Live'}
+                    </button>
+                    <button
+                      onClick={() => removeShow(show.tmdb_id)}
+                      className={`text-red-400 hover:text-red-300 text-sm px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl border border-red-900 hover:bg-red-950 transition-colors ${viewMode === 'compact' ? 'text-xs px-2 py-1' : ''}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
+              </>
+            );
+            if (viewMode === 'list') {
+              return (
+                <div
+                  key={show.id}
+                  draggable
+                  onDragStart={(e) => onDragStart(e, show.tmdb_id)}
+                  onDragOver={onDragOver}
+                  onDrop={(e) => onDrop(e, show.tmdb_id)}
+                  onDragEnd={onDragEnd}
+                  className={`flex items-center gap-3 bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50' : ''}`}
+                >
+                  <span className="text-zinc-500 pl-2 shrink-0 select-none" aria-hidden>⋮⋮</span>
+                  <Link href={show.media_type === 'movie' ? `/movie/${show.id}` : `/show/${show.id}`} className="min-w-0 flex-1 flex items-center gap-4 py-2 pr-2">
+                    <img
+                      src={show.poster_path ? `https://image.tmdb.org/t/p/w154${show.poster_path}` : 'https://picsum.photos/id/1015/92/138'}
+                      alt={show.title}
+                      className="w-12 h-[72px] object-cover rounded-lg shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold truncate">{show.title}</p>
+                      <p className="text-emerald-400 text-sm">Cancel {show.service} by {show.window.primaryCancel}</p>
+                    </div>
+                  </Link>
+                  <div className="flex flex-wrap gap-2 items-center shrink-0 pr-3">
+                    <button onClick={() => toggleFavorite(show.tmdb_id, show.favorite)} className={`text-xl transition-all ${show.favorite ? 'text-yellow-400 scale-110' : 'text-zinc-600 hover:text-yellow-400'}`}>★</button>
+                    <button onClick={() => toggleWatchLive(show.tmdb_id, show.watchLive ?? show.watch_live)} disabled={show.window.isComplete} className={`text-sm px-3 py-1.5 rounded-xl border transition-colors ${show.watchLive ?? show.watch_live ? 'bg-emerald-600 text-white border-emerald-600' : show.window.isComplete ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border-zinc-700' : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'}`}>{show.window.isComplete ? 'Completed' : 'Watch Live'}</button>
+                    <button onClick={() => removeShow(show.tmdb_id)} className="text-red-400 hover:text-red-300 text-sm px-3 py-1.5 rounded-xl border border-red-900 hover:bg-red-950">Remove</button>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div
+                key={show.id}
+                draggable
+                onDragStart={(e) => onDragStart(e, show.tmdb_id)}
+                onDragOver={onDragOver}
+                onDrop={(e) => onDrop(e, show.tmdb_id)}
+                onDragEnd={onDragEnd}
+                className={`bg-zinc-900 rounded-3xl overflow-hidden group relative cursor-grab active:cursor-grabbing ${viewMode === 'compact' ? 'rounded-2xl' : ''} ${isDragging ? 'opacity-50' : ''}`}
+              >
+                <span className="absolute top-2 left-2 z-10 text-zinc-500 bg-black/60 rounded px-1.5 py-0.5 text-sm select-none pointer-events-none">⋮⋮</span>
+                {cardContent}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         </div>
 

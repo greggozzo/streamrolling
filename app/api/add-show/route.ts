@@ -26,12 +26,23 @@ export async function POST(request: Request) {
     }
   }
 
+  const { data: maxRow } = await supabase
+    .from('user_shows')
+    .select('sort_order')
+    .eq('user_id', userId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextOrder = (maxRow?.sort_order ?? -1) + 1;
+
   const { error } = await supabase
     .from('user_shows')
     .insert({
       user_id: userId,
       tmdb_id: tmdbId,
       media_type: mediaType,
+      sort_order: nextOrder,
     });
 
   if (error) return Response.json({ error: error.message }, { status: 400 });
