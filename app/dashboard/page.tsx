@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
 import ShowCard from '@/components/ShowCard';
 import RollingCalendar from '@/components/RollingCalendar';
+import CancelProvidersSidebar from '@/components/CancelProvidersSidebar';
 import Link from 'next/link';
 import SearchBar from '@/components/SearchBar';
 
@@ -113,8 +114,11 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-zinc-950 py-12">
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-6 flex gap-10">
+        {/* Left: Cancel subscription links by provider */}
+        <CancelProvidersSidebar />
 
+        <div className="min-w-0 flex-1">
         {/* Search Bar */}
         <div className="mb-10">
           <SearchBar />
@@ -194,6 +198,7 @@ export default function Dashboard() {
               </div>
             </div>
           ))}
+        </div>
         </div>
       </div>
     </div>
