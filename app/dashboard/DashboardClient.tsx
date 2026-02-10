@@ -122,8 +122,8 @@ export default function DashboardClient({ initialIsPaid }: { initialIsPaid: bool
       const res = await fetch('/api/cancel-subscription', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to cancel');
-      alert('Your subscription will cancel at the end of the billing period. You’ll keep access until then.');
-      window.location.reload();
+      window.location.href = '/canceled-subscription';
+      return;
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Something went wrong.');
     } finally {
