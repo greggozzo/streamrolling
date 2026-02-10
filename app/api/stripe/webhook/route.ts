@@ -8,6 +8,18 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export async function POST(req: Request) {
+  // Trim in case of copy-paste spaces; must be available at runtime (Production + redeploy after setting in Vercel)
+  const raw = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = typeof raw === 'string' ? raw.trim() : '';
+  if (!webhookSecret) {
+    const envNames = raw === undefined ? 'undefined' : raw === '' ? 'empty string' : typeof raw;
+    console.error('[stripe webhook] STRIPE_WEBHOOK_SECRET not available at runtime:', envNames, '- Check Vercel → Settings → Environment Variables: Production selected, then redeploy.');
+    return Response.json(
+      { error: 'Webhook secret not configured. In Vercel set STRIPE_WEBHOOK_SECRET for Production and redeploy.' },
+      { status: 500 }
+    );
+  }
+
   const body = await req.text();
   const headersList = await headers();
   const sig = headersList.get('stripe-signature');
@@ -18,7 +30,7 @@ export async function POST(req: Request) {
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[stripe webhook] Signature verification failed:', msg);
