@@ -24,9 +24,9 @@ export default function Dashboard() {
 
     async function loadSubscriptionStatus() {
       try {
-        const res = await fetch('/api/subscription-status');
+        const res = await fetch('/api/subscription-status', { cache: 'no-store' });
         const data = await res.json();
-        setIsPaid(data.isPaid === true);
+        setIsPaid(data.isPaid === true || data.isPaid === 'true');
       } catch {
         setIsPaid(false);
       }
