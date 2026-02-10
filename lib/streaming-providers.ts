@@ -159,7 +159,7 @@ export const STREAMING_PROVIDERS: StreamingProvider[] = [
 {
     id: 'amc',
     name: 'AMC+',
-    cancelUrl: 'https://https://www.amcplus.com/account',
+    cancelUrl: 'https://www.amcplus.com/account',
     logoUrl: 'https://media.themoviedb.org/t/p/original/ovmu6uot1XVvsemM2dDySXLiX57.jpg',
     aliases: ['Peacock'],
   },
