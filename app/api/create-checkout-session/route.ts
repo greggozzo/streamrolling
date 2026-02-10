@@ -19,6 +19,9 @@ export async function POST(request: Request) {
       cancel_url: `${process.env.NEXT_PUBLIC_CLERK_BASE_URL}/upgrade?cancelled=true`,
       client_reference_id: userId,
       metadata: { userId },
+      subscription_data: {
+        metadata: { userId },
+      },
     });
 
     return Response.json({ url: session.url });

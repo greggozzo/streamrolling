@@ -15,6 +15,7 @@ export default function DashboardClient({ initialIsPaid }: { initialIsPaid: bool
   const [shows, setShows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(initialIsPaid);
+  const [cancelling, setCancelling] = useState(false);
 
   // Keep isPaid in sync if it was set on the server (e.g. after returning from Stripe)
   useEffect(() => {
@@ -114,6 +115,22 @@ export default function DashboardClient({ initialIsPaid }: { initialIsPaid: bool
     setShows(shows.filter(s => s.tmdb_id !== tmdbId));
   };
 
+  const cancelSubscription = async () => {
+    if (!confirm('Cancel at end of billing period? You’ll keep access until then.')) return;
+    setCancelling(true);
+    try {
+      const res = await fetch('/api/cancel-subscription', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to cancel');
+      alert('Your subscription will cancel at the end of the billing period. You’ll keep access until then.');
+      window.location.reload();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Something went wrong.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (!isLoaded) return <div className="p-20 text-center">Loading...</div>;
   if (!userId) return <div className="p-20 text-center text-2xl">Please sign in</div>;
 
@@ -138,10 +155,11 @@ export default function DashboardClient({ initialIsPaid }: { initialIsPaid: bool
           {isPaid ? (
             <button
               type="button"
-              onClick={() => { window.location.href = 'https://billing.stripe.com/p/login/test_...'; }} // replace with your Stripe Customer Portal URL
-              className="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-bold text-sm sm:text-base"
+              onClick={cancelSubscription}
+              disabled={cancelling}
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-500 disabled:opacity-70 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-bold text-sm sm:text-base"
             >
-              Cancel membership
+              {cancelling ? 'Cancelling…' : 'Cancel membership'}
             </button>
           ) : (
             <Link href="/upgrade" className="block w-full sm:w-auto text-center bg-emerald-500 text-black px-6 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-bold text-sm sm:text-base">

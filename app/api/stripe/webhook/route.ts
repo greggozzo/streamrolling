@@ -19,18 +19,42 @@ export async function POST(req: Request) {
     return Response.json({ error: `Webhook signature verification failed: ${err.message}` }, { status: 400 });
   }
 
-  // Handle successful subscription — use publicMetadata so the frontend can read it (privateMetadata is server-only)
+  // Handle successful subscription: set isPaid and store subscription ID for cancel-at-period-end
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
-    const userId = session.metadata?.userId;
+    const userId = session.metadata?.userId as string | undefined;
+    const subscriptionId = session.subscription as string | undefined;
 
     if (userId) {
       const existing = await clerkClient.users.getUser(userId);
       const existingPublic = (existing.publicMetadata || {}) as Record<string, unknown>;
+      const existingPrivate = (existing.privateMetadata || {}) as Record<string, unknown>;
       await clerkClient.users.updateUser(userId, {
         publicMetadata: { ...existingPublic, isPaid: true },
+        privateMetadata: {
+          ...existingPrivate,
+          isPaid: true,
+          ...(subscriptionId && { stripeSubscriptionId: subscriptionId }),
+        },
       });
-      console.log(`User ${userId} upgraded to paid`);
+      console.log(`User ${userId} upgraded to paid, subscription ${subscriptionId}`);
+    }
+  }
+
+  // When subscription actually ends (after period end or immediate cancel), clear isPaid in Clerk
+  if (event.type === 'customer.subscription.deleted') {
+    const subscription = event.data.object as Stripe.Subscription;
+    const userId = subscription.metadata?.userId as string | undefined;
+
+    if (userId) {
+      const existing = await clerkClient.users.getUser(userId);
+      const existingPublic = (existing.publicMetadata || {}) as Record<string, unknown>;
+      const existingPrivate = (existing.privateMetadata || {}) as Record<string, unknown>;
+      await clerkClient.users.updateUser(userId, {
+        publicMetadata: { ...existingPublic, isPaid: false },
+        privateMetadata: { ...existingPrivate, isPaid: false, stripeSubscriptionId: undefined },
+      });
+      console.log(`User ${userId} subscription ended, isPaid set to false`);
     }
   }
 
