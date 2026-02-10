@@ -4,6 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
+import { pickPrimaryProvider } from '@/lib/streaming-providers';
 import ShowCard from '@/components/ShowCard';
 import RollingCalendar from '@/components/RollingCalendar';
 import CancelProvidersSidebar from '@/components/CancelProvidersSidebar';
@@ -67,8 +68,8 @@ export default function DashboardClient({
               : calculateSubscriptionWindowFromDates(details.first_air_date, details.last_air_date);
           }
 
-          const providers = details['watch/providers']?.results?.US?.flatrate || [];
-          const service = providers[0]?.provider_name || 'Unknown';
+          const flatrate = details['watch/providers']?.results?.US?.flatrate;
+          const service = pickPrimaryProvider(flatrate);
 
           return {
             ...details,

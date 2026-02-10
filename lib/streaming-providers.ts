@@ -4,6 +4,45 @@
  * Logos: use image URL (e.g. Clearbit, or /logos/name.svg in public).
  */
 
+/** TMDB "channel" variants that mean "watch via X's app on Apple TV / Prime" — map to the direct service name so we show e.g. Paramount+ not "Paramount Plus Apple TV Channel". */
+const CHANNEL_VARIANT_TO_DIRECT: Record<string, string> = {
+  'Paramount Plus Apple TV Channel': 'Paramount+',
+  'Paramount Plus Prime Channel': 'Paramount+',
+  'Peacock Apple TV Channel': 'Peacock',
+  'Peacock Premium Apple TV Channel': 'Peacock',
+  'AMC Plus Apple TV Channel': 'AMC+',
+  'AMC+ Apple TV Channel': 'AMC+',
+  'Disney Plus Apple TV Channel': 'Disney+',
+  'Disney+ Apple TV Channel': 'Disney+',
+  'HBO Max Apple TV Channel': 'Max',
+  'Max Apple TV Channel': 'Max',
+  'Starz Apple TV Channel': 'Starz',
+  'Showtime Apple TV Channel': 'Showtime',
+  'MGM+ Apple TV Channel': 'MGM+',
+  'MGM Plus Apple TV Channel': 'MGM+',
+};
+
+/**
+ * From TMDB watch/providers flatrate list, pick the primary service name.
+ * Prefers the direct service (e.g. "Paramount+") over channel variants
+ * (e.g. "Paramount Plus Apple TV Channel"). Does not change shows that
+ * are actually on Apple TV+ or Prime — only maps known channel variants.
+ */
+export function pickPrimaryProvider(
+  flatrate: { provider_name?: string }[] | null | undefined
+): string {
+  if (!flatrate?.length) return 'Unknown';
+  const names = flatrate.map((p) => (p.provider_name ?? '').trim()).filter(Boolean);
+  if (!names.length) return 'Unknown';
+
+  const isChannelVariant = (name: string) => name in CHANNEL_VARIANT_TO_DIRECT;
+
+  for (const name of names) {
+    if (!isChannelVariant(name)) return name;
+  }
+  return CHANNEL_VARIANT_TO_DIRECT[names[0]] ?? names[0];
+}
+
 export interface StreamingProvider {
   id: string;
   name: string;
