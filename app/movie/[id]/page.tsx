@@ -11,10 +11,6 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
     ? `https://image.tmdb.org/t/p/w780${movie.poster_path}`
     : 'https://picsum.photos/id/1015/600/900';
 
-  // Get primary streaming service
-  const providers = movie['watch/providers']?.results?.US?.flatrate || [];
-  const primaryService = providers[0]?.provider_name || 'Unknown Service';
-
   return (
     <div className="min-h-screen bg-zinc-950 text-white py-12">
       <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12">
@@ -44,15 +40,6 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
               <p className="uppercase tracking-widest text-emerald-400 text-sm mb-1">RECOMMENDATION</p>
               <p className="text-4xl font-bold text-emerald-400">Watch now</p>
             </div>
-
-            {/* Subscribe button with service name */}
-            <a
-              href="#" // ← we'll replace with real affiliate link later
-              target="_blank"
-              className="mt-6 block w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xl py-5 rounded-2xl text-center transition-colors"
-            >
-              Subscribe to {primaryService} →
-            </a>
 
             <AddToMyShowsButton tmdbId={movie.id} mediaType="movie" />
           </div>

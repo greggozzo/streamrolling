@@ -7,16 +7,19 @@ export interface Show {
   service: string;
   window: {
     primarySubscribe: string;
-    /** Month of first episode (debut); used when watchLive is true. */
     secondarySubscribe?: string;
   };
   favorite: boolean;
   watchLive: boolean;
+  /** Order added (0 = first); used to break ties when two Watch Live services want the same month. */
+  addedOrder?: number;
 }
 
 export interface MonthPlan {
   service: string | null;
   shows: Show[];
+  /** Other services that also have Watch Live shows this month; user may need to subscribe to both. */
+  alsoWatchLive?: string[];
 }
 
 export type Calendar = Record<string, MonthPlan>;
@@ -84,79 +87,81 @@ export function buildSubscriptionPlan(shows: Show[]): Calendar {
   });
 
   /*
-    service -> month -> { score, shows[] }
+    service -> month -> { score, shows[], minAddedOrder }
   */
   const scores: Record<
     string,
-    Record<string, { score: number; shows: Show[] }>
+    Record<string, { score: number; shows: Show[]; minAddedOrder: number }>
   > = {};
 
   for (const show of shows) {
-    // Watch Live → subscribe in the month the show debuts; otherwise use binge recommendation.
     const subscribeMonthStr = show.watchLive && show.window.secondarySubscribe
       ? show.window.secondarySubscribe
       : show.window.primarySubscribe;
     const month = normalizeMonth(subscribeMonthStr);
     if (!month || !months.includes(month)) continue;
 
+    const order = show.addedOrder ?? Infinity;
     if (!scores[show.service]) scores[show.service] = {};
     if (!scores[show.service][month]) {
-      scores[show.service][month] = { score: 0, shows: [] };
+      scores[show.service][month] = { score: 0, shows: [], minAddedOrder: Infinity };
     }
 
-    scores[show.service][month].score += scoreShow(show);
-    scores[show.service][month].shows.push(show);
+    const bucket = scores[show.service][month];
+    bucket.score += scoreShow(show);
+    bucket.shows.push(show);
+    bucket.minAddedOrder = Math.min(bucket.minAddedOrder, order);
   }
 
   /*
-    Sort services by total priority
+    Month-first placement: for each month, assign to the service that wants it most.
+    Tiebreak: prefer Watch Live show that was added first (lower addedOrder).
+    Track other services that had Watch Live for this month (user may need both).
   */
-  const services = Object.entries(scores)
-    .map(([service, monthData]) => {
-      const totalScore = Object.values(monthData).reduce(
-        (sum, m) => sum + m.score,
-        0
-      );
+  const assignedServices = new Set<string>();
 
-      const sortedMonths = Object.entries(monthData).sort(
-        (a, b) => b[1].score - a[1].score
-      );
+  for (const monthKey of months) {
+    let best: { service: string; score: number; minAddedOrder: number; data: { shows: Show[] } } | null = null;
 
-      return {
-        service,
-        totalScore,
-        choices: sortedMonths, // includes shows
-      };
-    })
-    .sort((a, b) => b.totalScore - a.totalScore);
+    for (const [service, monthData] of Object.entries(scores)) {
+      if (assignedServices.has(service)) continue;
+      const data = monthData[monthKey];
+      if (!data) continue;
 
-
-  /*
-    Greedy placement
-  */
-  for (const { service, choices } of services) {
-    let placed = false;
-
-    for (const [month, data] of choices) {
-      if (!calendar[month].service) {
-        calendar[month] = {
-          service,
-          shows: data.shows,
-        };
-        placed = true;
-        break;
+      const better =
+        !best ||
+        data.score > best.score ||
+        (data.score === best.score && data.minAddedOrder < best.minAddedOrder);
+      if (better) {
+        best = { service, score: data.score, minAddedOrder: data.minAddedOrder, data };
       }
     }
 
-    // fallback
-    if (!placed) {
-      const open = months.find(m => !calendar[m].service);
-      if (open) {
-        calendar[open] = {
-          service,
-          shows: [],
-        };
-      }
+    if (best) {
+      assignedServices.add(best.service);
+      const otherWatchLive = Object.entries(scores)
+        .filter(([svc]) => svc !== best!.service)
+        .map(([svc, monthData]) => {
+          const d = monthData[monthKey];
+          return d?.shows.some(s => s.watchLive) ? svc : null;
+        })
+        .filter((s): s is string => s !== null);
+      calendar[monthKey] = {
+        service: best.service,
+        shows: best.data.shows,
+        alsoWatchLive: otherWatchLive.length > 0 ? otherWatchLive : undefined,
+      };
+    }
+  }
+
+  /*
+    Fallback: services that didn't get a month get the first open slot
+  */
+  for (const [service, monthData] of Object.entries(scores)) {
+    if (assignedServices.has(service)) continue;
+    const open = months.find(m => !calendar[m].service);
+    if (open) {
+      calendar[open] = { service, shows: [] };
     }
   }
 

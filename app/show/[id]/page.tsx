@@ -1,6 +1,6 @@
 // app/show/[id]/page.tsx
 import { getShowDetails, getNextSeasonEpisodes } from '@/lib/tmdb';
-import { calculateSubscriptionWindow } from '@/lib/recommendation';
+import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
 import Image from 'next/image';
 import AddToMyShowsButton from '@/components/AddToMyShowsButton';
 
@@ -9,10 +9,9 @@ export default async function ShowPage({ params }: { params: Promise<{ id: strin
 
   const show = await getShowDetails(id);
   const episodes = await getNextSeasonEpisodes(id);
-  const window = calculateSubscriptionWindow(episodes);
-
-  const providers = show['watch/providers']?.results?.US?.flatrate || [];
-  const primaryService = providers[0]?.provider_name || 'the service';
+  const window = episodes.length > 0
+    ? calculateSubscriptionWindow(episodes)
+    : calculateSubscriptionWindowFromDates(show.first_air_date, show.last_air_date);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white py-12">
@@ -55,15 +54,6 @@ export default async function ShowPage({ params }: { params: Promise<{ id: strin
                 </p>
               </div>
             )}
-
-            {/* Affiliate Button */}
-            <a
-              href="#" 
-              target="_blank"
-              className="mt-6 block w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xl py-5 rounded-2xl text-center transition-colors"
-            >
-              Subscribe to {primaryService} for {window.primarySubscribe}
-            </a>
 
             <AddToMyShowsButton tmdbId={show.id} />
           </div>

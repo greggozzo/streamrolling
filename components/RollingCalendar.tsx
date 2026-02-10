@@ -47,6 +47,11 @@ export default function RollingCalendar({ shows }: Props) {
                   <div className="bg-emerald-600 text-white text-sm font-medium py-4 px-5 rounded-2xl cursor-pointer">
                     {entry.service}
                   </div>
+                  {entry.alsoWatchLive && entry.alsoWatchLive.length > 0 && (
+                    <p className="mt-1.5 text-[10px] text-amber-400/90 leading-tight px-1">
+                      You may need {entry.alsoWatchLive.join(' & ')} this month too (watch live). We placed {entry.service} here because it was added first.
+                    </p>
+                  )}
 
                   {/* Tooltip: list ALL shows for this service (from full list) */}
                   {(() => {

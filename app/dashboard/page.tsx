@@ -3,7 +3,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { calculateSubscriptionWindow } from '@/lib/recommendation';
+import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
 import ShowCard from '@/components/ShowCard';
 import RollingCalendar from '@/components/RollingCalendar';
 import Link from 'next/link';
@@ -28,7 +28,7 @@ export default function Dashboard() {
         .eq('user_id', userId);
 
       const loaded = await Promise.all(
-        (data || []).map(async (dbShow: any) => {
+        (data || []).map(async (dbShow: any, index: number) => {
           const isMovie = dbShow.media_type === 'movie';
           const endpoint = isMovie 
             ? `https://api.themoviedb.org/3/movie/${dbShow.tmdb_id}`
@@ -37,13 +37,18 @@ export default function Dashboard() {
           const res = await fetch(`${endpoint}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&append_to_response=watch/providers`);
           const details = await res.json();
 
-          let window = { primarySubscribe: 'TBD', primaryCancel: 'TBD', isComplete: false };
-          if (!isMovie) {
+          let window: { primarySubscribe: string; primaryCancel: string; secondarySubscribe?: string | null; isComplete: boolean };
+          if (isMovie) {
+            window = calculateSubscriptionWindowFromDates(details.release_date);
+          } else {
             const epRes = await fetch(
               `https://api.themoviedb.org/3/tv/${dbShow.tmdb_id}/season/${details.number_of_seasons || 1}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
             );
             const season = await epRes.json();
-            window = calculateSubscriptionWindow(season.episodes || []);
+            const episodes = season.episodes || [];
+            window = episodes.length > 0
+              ? calculateSubscriptionWindow(episodes)
+              : calculateSubscriptionWindowFromDates(details.first_air_date, details.last_air_date);
           }
 
           const providers = details['watch/providers']?.results?.US?.flatrate || [];
@@ -51,15 +56,13 @@ export default function Dashboard() {
 
           return {
             ...details,
-	    // 🔥 normalize name here
-	    title: details.title || details.name || 'Unknown',
-
+            title: details.title || details.name || 'Unknown',
             window,
             service,
-
             favorite: !!dbShow.favorite,
             watchLive: !!dbShow.watch_live,
             tmdb_id: dbShow.tmdb_id,
+            addedOrder: index,
           };
         })
       );
