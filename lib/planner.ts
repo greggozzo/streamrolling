@@ -94,11 +94,20 @@ export function buildSubscriptionPlan(shows: Show[]): Calendar {
     Record<string, { score: number; shows: Show[]; minAddedOrder: number }>
   > = {};
 
+  const currentMonthKey = months[0]; // first of next 12 = this month
+
   for (const show of shows) {
-    const subscribeMonthStr = show.watchLive && show.window.secondarySubscribe
-      ? show.window.secondarySubscribe
-      : show.window.primarySubscribe;
-    const month = normalizeMonth(subscribeMonthStr);
+    let subscribeMonthStr: string;
+    if (show.watchLive && show.window.secondarySubscribe) {
+      subscribeMonthStr = show.window.secondarySubscribe;
+    } else {
+      subscribeMonthStr = show.window.primarySubscribe;
+    }
+    let month = normalizeMonth(subscribeMonthStr);
+    // Watch Live + currently airing: if debut month is in the past, use current month so the show gets a slot
+    if (show.watchLive && month && !months.includes(month)) {
+      month = currentMonthKey;
+    }
     if (!month || !months.includes(month)) continue;
 
     const order = show.addedOrder ?? Infinity;
