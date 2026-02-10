@@ -34,7 +34,7 @@ export default function RollingCalendar({ shows }: Props) {
 
       <div className="bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-8 overflow-visible">
         <div
-          className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-12 gap-2 sm:gap-3 min-w-0"
+          className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 xl:grid-cols-6 gap-2 sm:gap-3 min-w-0"
           style={{ gridAutoRows: 'minmax(3.25rem, auto)', WebkitGridAutoRows: 'minmax(3.25rem, auto)' }}
         >
         {months.map(month => {
