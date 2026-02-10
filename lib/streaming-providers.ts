@@ -4,29 +4,69 @@
  * Logos: use image URL (e.g. Clearbit, or /logos/name.svg in public).
  */
 
-/** TMDB "channel" variants that mean "watch via X's app on Apple TV / Prime" — map to the direct service name so we show e.g. Paramount+ not "Paramount Plus Apple TV Channel". */
-const CHANNEL_VARIANT_TO_DIRECT: Record<string, string> = {
-  'Paramount Plus Apple TV Channel': 'Paramount+',
-  'Paramount Plus Prime Channel': 'Paramount+',
-  'Peacock Apple TV Channel': 'Peacock',
-  'Peacock Premium Apple TV Channel': 'Peacock',
-  'AMC Plus Apple TV Channel': 'AMC+',
-  'AMC+ Apple TV Channel': 'AMC+',
-  'Disney Plus Apple TV Channel': 'Disney+',
-  'Disney+ Apple TV Channel': 'Disney+',
-  'HBO Max Apple TV Channel': 'Max',
-  'Max Apple TV Channel': 'Max',
-  'Starz Apple TV Channel': 'Starz',
-  'Showtime Apple TV Channel': 'Showtime',
-  'MGM+ Apple TV Channel': 'MGM+',
-  'MGM Plus Apple TV Channel': 'MGM+',
+/** Suffixes TMDB uses for "watch via X on Apple TV / Prime / Amazon / Roku" — we strip these and show the direct service. */
+const CHANNEL_SUFFIXES = [
+  ' Apple TV Channel',
+  ' Apple TV channel',
+  ' Prime Channel',
+  ' Prime channel',
+  ' Amazon Channel',
+  ' Roku Premium Channel',
+  ' Originals Amazon Channel',
+];
+
+/** After stripping channel suffix, map base name to canonical display name. */
+const BASE_TO_CANONICAL: Record<string, string> = {
+  'Paramount Plus': 'Paramount+',
+  'Paramount+': 'Paramount+',
+  'Peacock': 'Peacock',
+  'Peacock Premium': 'Peacock',
+  'AMC Plus': 'AMC+',
+  'AMC+': 'AMC+',
+  'Disney Plus': 'Disney+',
+  'Disney+': 'Disney+',
+  'HBO Max': 'Max',
+  'Max': 'Max',
+  'Starz': 'Starz',
+  'Showtime': 'Showtime',
+  'MGM Plus': 'MGM+',
+  'MGM+': 'MGM+',
 };
+
+/** TMDB sometimes returns tier names (Essential, Premium, Basic with Ads); map to canonical. */
+const DISPLAY_NORMALIZE: Record<string, string> = {
+  'Paramount Plus': 'Paramount+',
+  'Paramount Plus Essential': 'Paramount+',
+  'Paramount Plus Premium': 'Paramount+',
+  'Paramount Plus Basic with Ads': 'Paramount+',
+};
+
+function isChannelVariant(name: string): boolean {
+  const n = name.trim();
+  return CHANNEL_SUFFIXES.some((suffix) => n.includes(suffix));
+}
+
+function channelVariantToDirect(name: string): string {
+  let base = name.trim();
+  for (const suffix of CHANNEL_SUFFIXES) {
+    if (base.includes(suffix)) {
+      base = base.replace(suffix, '').trim();
+      break;
+    }
+  }
+  return BASE_TO_CANONICAL[base] ?? BASE_TO_CANONICAL[base.replace(/\s+/g, ' ')] ?? base || name;
+}
+
+function toDisplayName(name: string): string {
+  const n = name.trim();
+  return DISPLAY_NORMALIZE[n] ?? n;
+}
 
 /**
  * From TMDB watch/providers flatrate list, pick the primary service name.
- * Prefers the direct service (e.g. "Paramount+") over channel variants
- * (e.g. "Paramount Plus Apple TV Channel"). Does not change shows that
- * are actually on Apple TV+ or Prime — only maps known channel variants.
+ * Prefers the direct service (e.g. "Paramount+") over channel variants.
+ * US responses often list only channel variants first (e.g. "Paramount Plus Apple TV Channel ");
+ * we map those to the direct service name.
  */
 export function pickPrimaryProvider(
   flatrate: { provider_name?: string }[] | null | undefined
@@ -35,12 +75,10 @@ export function pickPrimaryProvider(
   const names = flatrate.map((p) => (p.provider_name ?? '').trim()).filter(Boolean);
   if (!names.length) return 'Unknown';
 
-  const isChannelVariant = (name: string) => name in CHANNEL_VARIANT_TO_DIRECT;
-
   for (const name of names) {
-    if (!isChannelVariant(name)) return name;
+    if (!isChannelVariant(name)) return toDisplayName(name);
   }
-  return CHANNEL_VARIANT_TO_DIRECT[names[0]] ?? names[0];
+  return channelVariantToDirect(names[0]);
 }
 
 export interface StreamingProvider {
@@ -59,7 +97,7 @@ export const STREAMING_PROVIDERS: StreamingProvider[] = [
     id: 'netflix',
     name: 'Netflix',
     cancelUrl: 'https://www.netflix.com/YourAccount',
-    logoUrl: 'https://images.ctfassets.net/y2ske730sjqp/1aONibCke6niZhgPxuiilC/2c401b05a07288746ddf3bd3943fbc76/BrandAssets_Logos_01-Wordmark.jpg?w=940',
+    logoUrl: 'https://media.themoviedb.org/t/p/original/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg',
     aliases: ['Netflix'],
   },
   {
