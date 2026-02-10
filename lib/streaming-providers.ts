@@ -26,8 +26,8 @@ export const STREAMING_PROVIDERS: StreamingProvider[] = [
   {
     id: 'max',
     name: 'Max',
-    cancelUrl: 'https://www.max.com/account',
-    logoUrl: 'https://logo.clearbit.com/hbomax.com',
+    cancelUrl: 'https://hbomax.com/subscription',
+    logoUrl: 'https://www.flaticon.com/free-icon/hbo_5968611?term=hbo&page=1&position=1&origin=search&related_id=5968611',
     aliases: ['HBO Max', 'Max'],
   },
   {
@@ -40,7 +40,7 @@ export const STREAMING_PROVIDERS: StreamingProvider[] = [
   {
     id: 'amazon',
     name: 'Prime Video',
-    cancelUrl: 'https://www.amazon.com/mc/digital-subscription-manager',
+    cancelUrl: 'https://www.amazon.com/amazonprime',
     logoUrl: 'https://logo.clearbit.com/primevideo.com',
     aliases: ['Amazon Prime Video', 'Prime Video', 'Amazon'],
   },
