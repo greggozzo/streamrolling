@@ -10,17 +10,26 @@ import CancelProvidersSidebar from '@/components/CancelProvidersSidebar';
 import Link from 'next/link';
 import SearchBar from '@/components/SearchBar';
 
-export default function DashboardClient({ initialIsPaid }: { initialIsPaid: boolean }) {
+interface DashboardClientProps {
+  initialIsPaid: boolean;
+  initialCancelAtPeriodEnd?: boolean;
+}
+
+export default function DashboardClient({
+  initialIsPaid,
+  initialCancelAtPeriodEnd = false,
+}: DashboardClientProps) {
   const { userId, isLoaded } = useAuth();
   const [shows, setShows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(initialIsPaid);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(initialCancelAtPeriodEnd);
   const [cancelling, setCancelling] = useState(false);
 
-  // Keep isPaid in sync if it was set on the server (e.g. after returning from Stripe)
   useEffect(() => {
     setIsPaid(initialIsPaid);
-  }, [initialIsPaid]);
+    setCancelAtPeriodEnd(initialCancelAtPeriodEnd);
+  }, [initialIsPaid, initialCancelAtPeriodEnd]);
 
   useEffect(() => {
     if (!isLoaded || !userId) {
@@ -152,7 +161,11 @@ export default function DashboardClient({ initialIsPaid }: { initialIsPaid: bool
           <h2 className="text-2xl sm:text-3xl font-bold">My Shows ({shows.length})</h2>
 
           <div className="flex shrink-0">
-          {isPaid ? (
+          {isPaid && cancelAtPeriodEnd ? (
+            <Link href="/upgrade" className="block w-full sm:w-auto text-center bg-amber-500 text-black px-6 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-bold text-sm sm:text-base hover:bg-amber-400 transition-colors">
+              Resubscribe →
+            </Link>
+          ) : isPaid ? (
             <button
               type="button"
               onClick={cancelSubscription}

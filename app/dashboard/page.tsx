@@ -7,6 +7,7 @@ export default async function DashboardPage() {
   const { userId } = await auth();
 
   let initialIsPaid = false;
+  let initialCancelAtPeriodEnd = false;
   if (userId) {
     try {
       const clerk = await clerkClient();
@@ -19,6 +20,8 @@ export default async function DashboardPage() {
         truthy(privateMeta?.is_paid) ||
         truthy(publicMeta?.isPaid) ||
         truthy(publicMeta?.is_paid);
+      initialCancelAtPeriodEnd =
+        truthy(privateMeta?.cancelAtPeriodEnd) || truthy(publicMeta?.cancelAtPeriodEnd);
     } catch (e) {
       console.error('[dashboard] isPaid check', e);
     }
@@ -26,5 +29,10 @@ export default async function DashboardPage() {
     redirect('/sign-in');
   }
 
-  return <DashboardClient initialIsPaid={initialIsPaid} />;
+  return (
+    <DashboardClient
+      initialIsPaid={initialIsPaid}
+      initialCancelAtPeriodEnd={initialCancelAtPeriodEnd}
+    />
+  );
 }

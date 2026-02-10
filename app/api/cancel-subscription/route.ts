@@ -64,6 +64,10 @@ export async function POST(request: Request) {
       cancel_at_period_end: true,
     });
 
+    await clerk.users.updateUser(userId, {
+      privateMetadata: { ...privateMeta, cancelAtPeriodEnd: true },
+    });
+
     return Response.json({
       success: true,
       message: 'Subscription will cancel at the end of the billing period.',

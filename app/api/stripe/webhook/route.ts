@@ -35,6 +35,7 @@ export async function POST(req: Request) {
         privateMetadata: {
           ...existingPrivate,
           isPaid: true,
+          cancelAtPeriodEnd: false,
           ...(subscriptionId && { stripeSubscriptionId: subscriptionId }),
         },
       });
@@ -54,7 +55,12 @@ export async function POST(req: Request) {
       const existingPrivate = (existing.privateMetadata || {}) as Record<string, unknown>;
       await clerk.users.updateUser(userId, {
         publicMetadata: { ...existingPublic, isPaid: false },
-        privateMetadata: { ...existingPrivate, isPaid: false, stripeSubscriptionId: undefined },
+        privateMetadata: {
+          ...existingPrivate,
+          isPaid: false,
+          cancelAtPeriodEnd: false,
+          stripeSubscriptionId: undefined,
+        },
       });
       console.log(`User ${userId} subscription ended, isPaid set to false`);
     }
