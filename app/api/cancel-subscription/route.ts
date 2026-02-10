@@ -52,6 +52,7 @@ export async function POST(request: Request) {
           { error: 'No active subscription found' },
           { status: 400 }
         );
+      }
       subscriptionId = sub.id;
       // Save to Clerk so next time we don't need to look up
       await clerk.users.updateUser(userId, {
