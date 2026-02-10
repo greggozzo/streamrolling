@@ -17,17 +17,17 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Body must be { order: number[] }' }, { status: 400 });
   }
 
-  try {
-    for (let i = 0; i < order.length; i++) {
-      await supabase
-        .from('user_shows')
-        .update({ sort_order: i })
-        .eq('user_id', userId)
-        .eq('tmdb_id', order[i]);
+  for (let i = 0; i < order.length; i++) {
+    const { error } = await supabase
+      .from('user_shows')
+      .update({ sort_order: i })
+      .eq('user_id', userId)
+      .eq('tmdb_id', order[i]);
+    if (error) {
+      // Column may not exist until migration is run; don't break the app
+      console.warn('[shows-order]', error.message);
+      return Response.json({ success: true, persisted: false });
     }
-    return Response.json({ success: true });
-  } catch (e) {
-    console.error('[shows-order]', e);
-    return Response.json({ error: 'Failed to update order' }, { status: 500 });
   }
+  return Response.json({ success: true, persisted: true });
 }
