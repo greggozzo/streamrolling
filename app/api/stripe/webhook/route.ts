@@ -19,14 +19,16 @@ export async function POST(req: Request) {
     return Response.json({ error: `Webhook signature verification failed: ${err.message}` }, { status: 400 });
   }
 
-  // Handle successful subscription
+  // Handle successful subscription — use publicMetadata so the frontend can read it (privateMetadata is server-only)
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     const userId = session.metadata?.userId;
 
     if (userId) {
+      const existing = await clerkClient.users.getUser(userId);
+      const existingPublic = (existing.publicMetadata || {}) as Record<string, unknown>;
       await clerkClient.users.updateUser(userId, {
-        privateMetadata: { isPaid: true },
+        publicMetadata: { ...existingPublic, isPaid: true },
       });
       console.log(`User ${userId} upgraded to paid`);
     }
