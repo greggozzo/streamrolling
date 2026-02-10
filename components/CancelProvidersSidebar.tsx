@@ -5,14 +5,16 @@ import { STREAMING_PROVIDERS } from '@/lib/streaming-providers';
 
 export default function CancelProvidersSidebar() {
   return (
-    <aside className="w-52 shrink-0">
-      <div className="sticky top-6 space-y-1">
+    <aside className="w-52 min-w-52 shrink-0 basis-52">
+      <div className="sticky top-6 space-y-2 overflow-visible">
         <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">
           Cancel subscription
         </p>
-        {STREAMING_PROVIDERS.map((provider) => (
-          <ProviderCancelButton key={provider.id} provider={provider} />
-        ))}
+        <div className="flex flex-col gap-2">
+          {STREAMING_PROVIDERS.map((provider) => (
+            <ProviderCancelButton key={provider.id} provider={provider} />
+          ))}
+        </div>
       </div>
     </aside>
   );
@@ -25,7 +27,7 @@ function ProviderCancelButton({ provider }: { provider: (typeof STREAMING_PROVID
       href={provider.cancelUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-3 w-full rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-2.5 text-left transition-colors hover:border-zinc-600 hover:bg-zinc-800"
+      className="flex items-center gap-3 w-full min-h-[44px] rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-left text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-800"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-zinc-800">
         {!logoError ? (
@@ -43,7 +45,7 @@ function ProviderCancelButton({ provider }: { provider: (typeof STREAMING_PROVID
           </span>
         )}
       </span>
-      <span className="truncate text-sm font-medium text-zinc-200">
+      <span className="truncate text-sm font-medium">
         {provider.name}
       </span>
     </a>
