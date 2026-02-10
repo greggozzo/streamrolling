@@ -113,14 +113,12 @@ export default function Dashboard() {
   if (!userId) return <div className="p-20 text-center text-2xl">Please sign in</div>;
 
   return (
-    <div className="min-h-screen bg-zinc-950 py-12">
-      <div className="max-w-7xl mx-auto px-6 flex gap-10">
-        {/* Left: Cancel subscription links by provider */}
-        <CancelProvidersSidebar />
-
-        <div className="min-w-0 flex-1">
+    <div className="min-h-screen bg-zinc-950 py-6 sm:py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col lg:flex-row gap-8 lg:gap-10">
+        {/* Main content first on mobile, left column on desktop */}
+        <div className="min-w-0 flex-1 order-1">
         {/* Search Bar */}
-        <div className="mb-10">
+        <div className="mb-6 sm:mb-10">
           <SearchBar />
         </div>
 
@@ -128,35 +126,37 @@ export default function Dashboard() {
         <RollingCalendar shows={shows} />
 
         {/* Header */}
-        <div className="flex justify-between items-center mt-16 mb-8">
-          <h2 className="text-3xl font-bold">My Shows ({shows.length})</h2>
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mt-10 sm:mt-16 mb-6 sm:mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold">My Shows ({shows.length})</h2>
 
+          <div className="flex shrink-0">
           {isPaid ? (
             <button
               onClick={() => window.location.href = 'https://billing.stripe.com/p/login/test_...'} // replace with your Stripe Customer Portal URL
-              className="bg-red-600 hover:bg-red-500 text-white px-8 py-3 rounded-2xl font-bold"
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-500 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-bold text-sm sm:text-base"
             >
               Cancel Membership
             </button>
           ) : (
-            <Link href="/upgrade" className="bg-emerald-500 text-black px-8 py-3 rounded-2xl font-bold">
+            <Link href="/upgrade" className="block w-full sm:w-auto text-center bg-emerald-500 text-black px-6 sm:px-8 py-2.5 sm:py-3 rounded-2xl font-bold text-sm sm:text-base">
               Upgrade $2.99/mo →
             </Link>
           )}
+          </div>
         </div>
 
         {/* Remove All Button */}
         {shows.length > 0 && (
           <button
             onClick={removeAllShows}
-            className="mb-8 text-red-400 hover:text-red-300 text-sm underline"
+            className="mb-6 sm:mb-8 text-red-400 hover:text-red-300 text-sm underline"
           >
             Remove All Shows
           </button>
         )}
 
         {/* Show Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">
           {shows.map(show => (
             <div key={show.id} className="bg-zinc-900 rounded-3xl overflow-hidden group relative">
               <ShowCard show={show} />
@@ -199,6 +199,11 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+        </div>
+
+        {/* Cancel subscription: sidebar on desktop, grid below main on mobile */}
+        <div className="order-2 w-full lg:w-auto">
+          <CancelProvidersSidebar />
         </div>
       </div>
     </div>

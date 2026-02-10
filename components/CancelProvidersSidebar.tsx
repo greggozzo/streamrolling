@@ -5,12 +5,12 @@ import { STREAMING_PROVIDERS } from '@/lib/streaming-providers';
 
 export default function CancelProvidersSidebar() {
   return (
-    <aside className="w-52 min-w-52 shrink-0 basis-52">
-      <div className="sticky top-6 space-y-2 overflow-visible">
+    <aside className="w-full lg:w-52 lg:min-w-52 lg:shrink-0 lg:basis-52">
+      <div className="lg:sticky lg:top-6 overflow-visible">
         <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">
           Cancel subscription
         </p>
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2">
           {STREAMING_PROVIDERS.map((provider) => (
             <ProviderCancelButton key={provider.id} provider={provider} />
           ))}
