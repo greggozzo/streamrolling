@@ -18,13 +18,45 @@ export async function POST(request: Request) {
     const clerk = await clerkClient();
     const user = await clerk.users.getUser(userId);
     const privateMeta = user.privateMetadata as Record<string, unknown> | undefined;
-    const subscriptionId = privateMeta?.stripeSubscriptionId as string | undefined;
+    let subscriptionId = privateMeta?.stripeSubscriptionId as string | undefined;
 
+    // Fallback for users who subscribed before we stored stripeSubscriptionId: find via Stripe by email
     if (!subscriptionId || typeof subscriptionId !== 'string') {
-      return Response.json(
-        { error: 'No active subscription found' },
-        { status: 400 }
-      );
+      const u = user as { emailAddresses?: { emailAddress: string }[]; primaryEmailAddress?: { emailAddress: string } };
+      const email = u.primaryEmailAddress?.emailAddress ?? u.emailAddresses?.[0]?.emailAddress;
+      if (!email) {
+        return Response.json(
+          { error: 'No active subscription found. Add your Stripe subscription ID in Clerk or contact support.' },
+          { status: 400 }
+        );
+      }
+      const customers = await stripe.customers.list({ email, limit: 1 });
+      const customerId = customers.data[0]?.id;
+      if (!customerId) {
+        return Response.json(
+          { error: 'No active subscription found' },
+          { status: 400 }
+        );
+      }
+      const subs = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'active',
+        limit: 1,
+      });
+      const trialing = subs.data.length === 0
+        ? await stripe.subscriptions.list({ customer: customerId, status: 'trialing', limit: 1 })
+        : { data: [] as Stripe.Subscription[] };
+      const sub = subs.data[0] ?? trialing.data[0];
+      if (!sub) {
+        return Response.json(
+          { error: 'No active subscription found' },
+          { status: 400 }
+        );
+      subscriptionId = sub.id;
+      // Save to Clerk so next time we don't need to look up
+      await clerk.users.updateUser(userId, {
+        privateMetadata: { ...privateMeta, stripeSubscriptionId: subscriptionId },
+      });
     }
 
     await stripe.subscriptions.update(subscriptionId, {
