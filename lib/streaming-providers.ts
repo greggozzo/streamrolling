@@ -54,7 +54,7 @@ function channelVariantToDirect(name: string): string {
       break;
     }
   }
-  return BASE_TO_CANONICAL[base] ?? BASE_TO_CANONICAL[base.replace(/\s+/g, ' ')] ?? base || name;
+  return BASE_TO_CANONICAL[base] ?? BASE_TO_CANONICAL[base.replace(/\s+/g, ' ')] ?? (base || name);
 }
 
 function toDisplayName(name: string): string {
