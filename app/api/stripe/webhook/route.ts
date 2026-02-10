@@ -22,10 +22,17 @@ export async function POST(req: Request) {
   // Handle successful subscription: set isPaid and store subscription ID for cancel-at-period-end
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
-    const userId = session.metadata?.userId as string | undefined;
-    const subscriptionId = session.subscription as string | undefined;
+    // Prefer metadata.userId; fallback to client_reference_id (we set both in create-checkout-session)
+    const userId = (session.metadata?.userId ?? session.client_reference_id) as string | undefined;
+    const subscriptionId =
+      typeof session.subscription === 'string' ? session.subscription : (session.subscription as Stripe.Subscription)?.id;
 
-    if (userId) {
+    if (!userId) {
+      console.error('[stripe webhook] checkout.session.completed: missing userId in session.metadata and client_reference_id');
+      return Response.json({ error: 'Missing user reference' }, { status: 400 });
+    }
+
+    try {
       const clerk = await clerkClient();
       const existing = await clerk.users.getUser(userId);
       const existingPublic = (existing.publicMetadata || {}) as Record<string, unknown>;
@@ -39,7 +46,10 @@ export async function POST(req: Request) {
           ...(subscriptionId && { stripeSubscriptionId: subscriptionId }),
         },
       });
-      console.log(`User ${userId} upgraded to paid, subscription ${subscriptionId}`);
+      console.log(`[stripe webhook] User ${userId} upgraded to paid, subscription ${subscriptionId}`);
+    } catch (err) {
+      console.error('[stripe webhook] Failed to update Clerk user metadata:', err);
+      return Response.json({ error: 'Clerk update failed' }, { status: 500 });
     }
   }
 
@@ -49,20 +59,25 @@ export async function POST(req: Request) {
     const userId = subscription.metadata?.userId as string | undefined;
 
     if (userId) {
-      const clerk = await clerkClient();
-      const existing = await clerk.users.getUser(userId);
-      const existingPublic = (existing.publicMetadata || {}) as Record<string, unknown>;
-      const existingPrivate = (existing.privateMetadata || {}) as Record<string, unknown>;
-      await clerk.users.updateUser(userId, {
-        publicMetadata: { ...existingPublic, isPaid: false },
-        privateMetadata: {
-          ...existingPrivate,
-          isPaid: false,
-          cancelAtPeriodEnd: false,
-          stripeSubscriptionId: undefined,
-        },
-      });
-      console.log(`User ${userId} subscription ended, isPaid set to false`);
+      try {
+        const clerk = await clerkClient();
+        const existing = await clerk.users.getUser(userId);
+        const existingPublic = (existing.publicMetadata || {}) as Record<string, unknown>;
+        const existingPrivate = (existing.privateMetadata || {}) as Record<string, unknown>;
+        await clerk.users.updateUser(userId, {
+          publicMetadata: { ...existingPublic, isPaid: false },
+          privateMetadata: {
+            ...existingPrivate,
+            isPaid: false,
+            cancelAtPeriodEnd: false,
+            stripeSubscriptionId: undefined,
+          },
+        });
+        console.log(`[stripe webhook] User ${userId} subscription ended, isPaid set to false`);
+      } catch (err) {
+        console.error('[stripe webhook] Failed to clear Clerk metadata on subscription.deleted:', err);
+        return Response.json({ error: 'Clerk update failed' }, { status: 500 });
+      }
     }
   }
 
