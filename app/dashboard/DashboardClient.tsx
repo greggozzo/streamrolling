@@ -14,14 +14,17 @@ import SearchBar from '@/components/SearchBar';
 interface DashboardClientProps {
   initialIsPaid: boolean;
   initialCancelAtPeriodEnd?: boolean;
+  /** Server-loaded shows so calendar shows services on first paint in all browsers (Firefox, mobile). */
+  initialShows?: any[];
 }
 
 export default function DashboardClient({
   initialIsPaid,
   initialCancelAtPeriodEnd = false,
+  initialShows = [],
 }: DashboardClientProps) {
   const { userId, isLoaded } = useAuth();
-  const [shows, setShows] = useState<any[]>([]);
+  const [shows, setShows] = useState<any[]>(initialShows);
   const [loading, setLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(initialIsPaid);
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(initialCancelAtPeriodEnd);

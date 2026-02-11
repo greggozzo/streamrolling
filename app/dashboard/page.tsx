@@ -1,13 +1,16 @@
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { loadUserShows } from '@/lib/load-user-shows';
 import DashboardClient from './DashboardClient';
 
-/** Resolve isPaid from Clerk on the server (same request as the page load, so auth is correct, test). */
+/** Load isPaid and shows on the server so the calendar renders with services on first paint (fixes Firefox/mobile). */
 export default async function DashboardPage() {
   const { userId } = await auth();
 
   let initialIsPaid = false;
   let initialCancelAtPeriodEnd = false;
+  let initialShows: any[] = [];
+
   if (userId) {
     try {
       const clerk = await clerkClient();
@@ -22,8 +25,10 @@ export default async function DashboardPage() {
         truthy(publicMeta?.is_paid);
       initialCancelAtPeriodEnd =
         truthy(privateMeta?.cancelAtPeriodEnd) || truthy(publicMeta?.cancelAtPeriodEnd);
+
+      initialShows = await loadUserShows(userId);
     } catch (e) {
-      console.error('[dashboard] isPaid check', e);
+      console.error('[dashboard] server load', e);
     }
   } else {
     redirect('/sign-in');
@@ -33,6 +38,7 @@ export default async function DashboardPage() {
     <DashboardClient
       initialIsPaid={initialIsPaid}
       initialCancelAtPeriodEnd={initialCancelAtPeriodEnd}
+      initialShows={initialShows}
     />
   );
 }
