@@ -104,7 +104,7 @@ export const STREAMING_PROVIDERS: StreamingProvider[] = [
     id: 'max',
     name: 'HBO',
     cancelUrl: 'https://hbomax.com/subscription',
-    logoUrl: 'https://hbomax.com/hbo-max-logo.6a0ffd17390eb01cb22124ab4185b23a.sha.png?h=30&f=webp',
+    logoUrl: 'https://media.themoviedb.org/t/p/original/jbe4gVSfRlbPTdESXhEKpornsfu.jpg',
     aliases: ['HBO Max', 'Max'],
   },
   {
