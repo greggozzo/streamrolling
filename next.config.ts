@@ -2,6 +2,10 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // Expose webhook secret to server bundle so it's available at runtime (Vercel injects at build)
+  env: {
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+  },
   images: {
     remotePatterns: [
       {
