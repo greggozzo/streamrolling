@@ -23,9 +23,11 @@ function showBelongsToService(s: Record<string, unknown>, entryService: string):
 
 interface Props {
   shows: Show[];
+  /** When true, show loading state instead of grid (avoids empty "Open" cells while data loads on mobile). */
+  loading?: boolean;
 }
 
-export default function RollingCalendar({ shows }: Props) {
+export default function RollingCalendar({ shows, loading = false }: Props) {
   const { months, plan } = useMemo(() => buildRollingPlan(shows), [shows]);
 
   return (
@@ -33,7 +35,15 @@ export default function RollingCalendar({ shows }: Props) {
       <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Your Rolling Plan</h2>
 
       <div className="bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-8 overflow-visible">
-        {/* Flexbox layout for reliable rendering on mobile Safari/Chrome (CSS Grid can unreliable there) */}
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-zinc-400 text-sm">
+            Loading your plan…
+          </div>
+        ) : shows.length === 0 ? (
+          <p className="text-zinc-500 text-sm text-center py-8">
+            Add shows above to see your rolling plan.
+          </p>
+        ) : (
         <div className="flex flex-wrap gap-2 sm:gap-3 justify-start">
           {months.map((month) => {
             const entry = plan[month.key];
@@ -100,6 +110,7 @@ export default function RollingCalendar({ shows }: Props) {
             );
           })}
         </div>
+        )}
       </div>
     </div>
   );

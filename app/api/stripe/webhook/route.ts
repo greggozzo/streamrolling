@@ -13,18 +13,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export async function POST(req: Request) {
-  /* ================================
-     DEBUG — remove later if you want
-     ================================ */
-  console.log('ENV CHECK:', {
-    hasWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET,
-    hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-    stripeKeys: Object.keys(process.env).filter((k) => k.includes('STRIPE')),
-  });
-
-  /* ================================
-     Get secret at RUNTIME ONLY
-     ================================ */
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
@@ -99,7 +87,7 @@ export async function POST(req: Request) {
           ...(existing.privateMetadata || {}),
           isPaid: true,
           cancelAtPeriodEnd: false,
-          stripeSubscriptionId: subscriptionId,
+          ...(subscriptionId && { stripeSubscriptionId: subscriptionId }),
         },
       });
 
@@ -111,11 +99,14 @@ export async function POST(req: Request) {
   }
 
   /* =====================================================
-     customer.subscription.deleted → downgrade user
+     customer.subscription.deleted → set isPaid = false in Clerk
+     Fired when a subscription ends: immediate cancel OR at end of
+     billing period after "cancel at period end". Ensure this event
+     is enabled in Stripe Dashboard → Webhooks → your endpoint.
      ===================================================== */
   if (event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object as Stripe.Subscription;
-    const userId = subscription.metadata?.userId;
+    const userId = subscription.metadata?.userId as string | undefined;
 
     if (userId) {
       try {
@@ -135,11 +126,13 @@ export async function POST(req: Request) {
           },
         });
 
-        console.log('[stripe webhook] User downgraded:', userId);
+        console.log('[stripe webhook] User downgraded (subscription ended):', userId);
       } catch (err) {
         console.error('[stripe webhook] Clerk update failed:', err);
         return Response.json({ error: 'Clerk update failed' }, { status: 500 });
       }
+    } else {
+      console.warn('[stripe webhook] customer.subscription.deleted: no userId in subscription.metadata (subscription may predate metadata)');
     }
   }
 

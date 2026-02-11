@@ -42,14 +42,26 @@ export default function DashboardClient({
     }
 
     async function load() {
-      const { data } = await supabase
-        .from('user_shows')
-        .select('*')
-        .eq('user_id', userId)
-        .order('sort_order', { ascending: true });
+      try {
+        let data: any[] | null = null;
+        const { data: sortData, error: sortError } = await supabase
+          .from('user_shows')
+          .select('*')
+          .eq('user_id', userId)
+          .order('sort_order', { ascending: true });
+        if (sortError) {
+          const { data: fallback } = await supabase
+            .from('user_shows')
+            .select('*')
+            .eq('user_id', userId)
+            .order('id', { ascending: true });
+          data = fallback;
+        } else {
+          data = sortData;
+        }
 
-      const loaded = await Promise.all(
-        (data || []).map(async (dbShow: any, index: number) => {
+        const loaded = await Promise.all(
+          (data || []).map(async (dbShow: any, index: number) => {
           const isMovie = dbShow.media_type === 'movie';
           const endpoint = isMovie 
             ? `https://api.themoviedb.org/3/movie/${dbShow.tmdb_id}`
@@ -86,10 +98,14 @@ export default function DashboardClient({
             addedOrder: index,
           };
         })
-      );
+        );
 
-      setShows(loaded);
-      setLoading(false);
+        setShows(loaded);
+      } catch (e) {
+        console.error('[dashboard] load failed', e);
+      } finally {
+        setLoading(false);
+      }
     }
 
     load();
@@ -196,7 +212,7 @@ export default function DashboardClient({
         </div>
 
         {/* Rolling Plan */}
-        <RollingCalendar shows={shows} />
+          <RollingCalendar shows={shows} loading={loading} />
 
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mt-10 sm:mt-16 mb-6 sm:mb-8">
