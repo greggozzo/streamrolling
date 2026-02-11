@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
-import { pickPrimaryProvider } from '@/lib/streaming-providers';
+import { pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
 import ShowCard from '@/components/ShowCard';
 import RollingCalendar from '@/components/RollingCalendar';
 import CancelProvidersSidebar from '@/components/CancelProvidersSidebar';
@@ -281,12 +281,23 @@ export default function DashboardClient({
         >
           {shows.map((show) => {
             const isDragging = draggedId === show.tmdb_id;
+            const provider = getProviderForServiceName(show.service);
             const cardContent = (
               <>
                 {viewMode !== 'list' && <ShowCard show={show} compact={viewMode === 'compact'} />}
                 <div className={viewMode === 'compact' ? 'p-3' : 'p-6'}>
-                  <p className={`text-emerald-400 font-bold ${viewMode === 'compact' ? 'text-sm' : ''}`}>
-                    Cancel {show.service} by {show.window.primaryCancel}
+                  <p className={`text-emerald-400 font-bold ${viewMode === 'compact' ? 'text-sm' : ''} flex items-center gap-2 flex-wrap`}>
+                    {provider ? (
+                      <>
+                        <img src={provider.logoUrl} alt="" className="h-5 w-auto object-contain rounded" />
+                        <span>Subscribe to {provider.name} in {show.window.primarySubscribe}</span>
+                      </>
+                    ) : (
+                      <span>Subscribe to {show.service} in {show.window.primarySubscribe}</span>
+                    )}
+                  </p>
+                  <p className={`text-zinc-500 text-sm mt-1 ${viewMode === 'compact' ? 'text-xs' : ''}`}>
+                    Cancel by {show.window.primaryCancel}
                   </p>
                   <div className={`flex flex-wrap gap-2 sm:gap-4 mt-5 ${viewMode === 'compact' ? 'mt-3' : ''}`}>
                     <button
@@ -338,7 +349,13 @@ export default function DashboardClient({
                     />
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold truncate">{show.title}</p>
-                      <p className="text-emerald-400 text-sm">Cancel {show.service} by {show.window.primaryCancel}</p>
+                      <p className="text-emerald-400 text-sm">
+                        {provider ? (
+                          <span className="flex items-center gap-1.5"><img src={provider.logoUrl} alt="" className="h-4 w-auto object-contain rounded" /> {provider.name} · Cancel by {show.window.primaryCancel}</span>
+                        ) : (
+                          <span>{show.service} · Cancel by {show.window.primaryCancel}</span>
+                        )}
+                      </p>
                     </div>
                   </Link>
                   <div className="flex flex-wrap gap-2 items-center shrink-0 pr-3">

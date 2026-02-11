@@ -156,12 +156,26 @@ export const STREAMING_PROVIDERS: StreamingProvider[] = [
     logoUrl: 'https://media.themoviedb.org/t/p/original/x9zOHTUkQzt3PgPVKbMH9CKBwLK.jpg',
     aliases: ['YouTube', 'YouTubeTV', 'YouTube TV'],
   },
-{
+  {
     id: 'amc',
     name: 'AMC+',
     cancelUrl: 'https://www.amcplus.com/account',
     logoUrl: 'https://media.themoviedb.org/t/p/original/ovmu6uot1XVvsemM2dDySXLiX57.jpg',
-    aliases: ['Peacock'],
+    aliases: ['AMC Plus', 'AMC+'],
   },
 
 ];
+
+/** Find a provider by display name or alias (e.g. "Max", "HBO Max", "Paramount+"). */
+export function getProviderForServiceName(serviceName: string | null | undefined): StreamingProvider | null {
+  if (!serviceName || typeof serviceName !== 'string') return null;
+  const normalized = serviceName.trim().toLowerCase();
+  if (!normalized) return null;
+  return (
+    STREAMING_PROVIDERS.find(
+      (p) =>
+        p.name.toLowerCase() === normalized ||
+        p.aliases?.some((a) => a.trim().toLowerCase() === normalized)
+    ) ?? null
+  );
+}
