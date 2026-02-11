@@ -11,17 +11,22 @@ import CancelProvidersSidebar from '@/components/CancelProvidersSidebar';
 import Link from 'next/link';
 import SearchBar from '@/components/SearchBar';
 
+import type { InitialPlanPayload } from '@/components/RollingCalendar';
+
 interface DashboardClientProps {
   initialIsPaid: boolean;
   initialCancelAtPeriodEnd?: boolean;
   /** Server-loaded shows so calendar shows services on first paint in all browsers (Firefox, mobile). */
   initialShows?: any[];
+  /** Server-computed plan so calendar displays without client-side buildRollingPlan (fixes Firefox/mobile). */
+  initialPlan?: InitialPlanPayload | null;
 }
 
 export default function DashboardClient({
   initialIsPaid,
   initialCancelAtPeriodEnd = false,
   initialShows = [],
+  initialPlan = null,
 }: DashboardClientProps) {
   const { userId, isLoaded } = useAuth();
   const [shows, setShows] = useState<any[]>(initialShows);
@@ -215,7 +220,7 @@ export default function DashboardClient({
         </div>
 
         {/* Rolling Plan */}
-          <RollingCalendar shows={shows} loading={loading} />
+          <RollingCalendar shows={shows} initialPlan={initialPlan} loading={loading} />
 
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mt-10 sm:mt-16 mb-6 sm:mb-8">

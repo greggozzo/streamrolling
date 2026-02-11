@@ -21,14 +21,27 @@ function showBelongsToService(s: Record<string, unknown>, entryService: string):
   return normalizeServiceName(service) === normalizeServiceName(entryService);
 }
 
+/** Server-computed plan (months + service per month) so the calendar can render without client-side buildRollingPlan. */
+export type InitialPlanPayload = {
+  months: { key: string; label: string }[];
+  plan: Record<string, { service: string | null; alsoWatchLive?: string[] }>;
+};
+
 interface Props {
   shows: Show[];
-  /** When true, show loading state instead of grid (avoids empty "Open" cells while data loads on mobile). */
+  /** When true, show loading state instead of grid. */
   loading?: boolean;
+  /** Server-computed plan; used when shows is empty so the calendar still displays (Firefox/mobile). */
+  initialPlan?: InitialPlanPayload | null;
 }
 
-export default function RollingCalendar({ shows, loading = false }: Props) {
-  const { months, plan } = useMemo(() => buildRollingPlan(shows), [shows]);
+export default function RollingCalendar({ shows, loading = false, initialPlan = null }: Props) {
+  const clientPlan = useMemo(() => buildRollingPlan(shows), [shows]);
+  const hasServerPlan = initialPlan && initialPlan.months?.length > 0;
+  const hasClientData = shows.length > 0;
+  const months = hasClientData ? clientPlan.months : hasServerPlan ? initialPlan!.months : clientPlan.months;
+  const plan = hasClientData ? clientPlan.plan : hasServerPlan ? initialPlan!.plan : clientPlan.plan;
+  const hasPlanToShow = hasClientData || hasServerPlan;
 
   return (
     <div className="mb-12 sm:mb-16">
@@ -39,7 +52,7 @@ export default function RollingCalendar({ shows, loading = false }: Props) {
           <div className="flex items-center justify-center py-16 text-zinc-400 text-sm">
             Loading your plan…
           </div>
-        ) : shows.length === 0 ? (
+        ) : !hasPlanToShow ? (
           <p className="text-zinc-500 text-sm text-center py-8">
             Add shows above to see your rolling plan.
           </p>

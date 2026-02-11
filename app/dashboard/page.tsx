@@ -1,15 +1,18 @@
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { loadUserShows } from '@/lib/load-user-shows';
+import { buildRollingPlan } from '@/lib/planner';
 import DashboardClient from './DashboardClient';
+import type { InitialPlanPayload } from '@/components/RollingCalendar';
 
-/** Load isPaid and shows on the server so the calendar renders with services on first paint (fixes Firefox/mobile). */
+/** Load isPaid, shows, and pre-computed plan on the server so the calendar displays in all browsers (Firefox/mobile). */
 export default async function DashboardPage() {
   const { userId } = await auth();
 
   let initialIsPaid = false;
   let initialCancelAtPeriodEnd = false;
   let initialShows: any[] = [];
+  let initialPlan: InitialPlanPayload | null = null;
 
   if (userId) {
     try {
@@ -27,6 +30,18 @@ export default async function DashboardPage() {
         truthy(privateMeta?.cancelAtPeriodEnd) || truthy(publicMeta?.cancelAtPeriodEnd);
 
       initialShows = await loadUserShows(userId);
+      if (initialShows.length > 0) {
+        const { months, plan } = buildRollingPlan(initialShows);
+        initialPlan = {
+          months,
+          plan: Object.fromEntries(
+            Object.entries(plan).map(([k, v]) => [
+              k,
+              { service: v.service, alsoWatchLive: v.alsoWatchLive },
+            ])
+          ),
+        };
+      }
     } catch (e) {
       console.error('[dashboard] server load', e);
     }
@@ -39,6 +54,7 @@ export default async function DashboardPage() {
       initialIsPaid={initialIsPaid}
       initialCancelAtPeriodEnd={initialCancelAtPeriodEnd}
       initialShows={initialShows}
+      initialPlan={initialPlan}
     />
   );
 }
