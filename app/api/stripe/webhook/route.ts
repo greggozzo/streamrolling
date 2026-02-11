@@ -8,21 +8,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export async function POST(req: Request) {
-  // Secret is exposed via next.config.ts env so it's in the server bundle at build time (Vercel has it during build)
-  const raw = process.env.STRIPE_WEBHOOK_SECRET;
+  // Must be available at runtime. Vercel "Sensitive" vars are NOT available at runtime — only at build. So this var must NOT be marked Sensitive.
+  const env = typeof process !== 'undefined' && process.env ? process.env : {};
+  const raw = env['STRIPE_WEBHOOK_SECRET'] ?? env['STRIPE_WEBHOOK_SIGNING_SECRET'];
   const webhookSecret = typeof raw === 'string' ? raw.trim() : '';
   if (!webhookSecret) {
-    // Diagnose: which STRIPE_ vars exist (names only) so we can see if secret is missing or misnamed
-    const stripeEnvKeys = Object.keys(process.env || {}).filter((k) => k.startsWith('STRIPE_'));
-    const envStatus = raw === undefined ? 'undefined' : raw === '' ? 'empty string' : typeof raw;
-    console.error(
-      '[stripe webhook] STRIPE_WEBHOOK_SECRET not available. Value:', envStatus,
-      '| STRIPE_* keys at runtime:', stripeEnvKeys.join(', ') || '(none)'
-    );
+    const stripeKeys = Object.keys(env).filter((k) => k.startsWith('STRIPE_'));
+    console.error('[stripe webhook] STRIPE_WEBHOOK_SECRET missing at runtime. STRIPE_* keys:', stripeKeys.join(', ') || '(none)');
     return Response.json(
       {
         error: 'Webhook secret not configured.',
-        hint: 'In Vercel: set STRIPE_WEBHOOK_SECRET for Production, then use Deployments → Redeploy (do not use "Use existing build"). Check function logs for STRIPE_* keys.',
+        hint: 'In Vercel → Settings → Environment Variables: open STRIPE_WEBHOOK_SECRET and ensure "Sensitive" is UNCHECKED. Sensitive vars are only available at build, not when the webhook runs. Then redeploy.',
       },
       { status: 500 }
     );
