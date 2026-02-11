@@ -2,7 +2,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import DashboardClient from './DashboardClient';
 
-/** Resolve isPaid from Clerk on the server (same request as the page load, so auth is correct). */
+/** Resolve isPaid from Clerk on the server (same request as the page load, so auth is correct, test). */
 export default async function DashboardPage() {
   const { userId } = await auth();
 
