@@ -8,10 +8,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export async function POST(req: Request) {
-  // Trim in case of copy-paste spaces; try common names (Vercel injects at runtime — redeploy after adding var)
-  const raw =
-    process.env.STRIPE_WEBHOOK_SECRET ??
-    process.env.STRIPE_WEBHOOK_SIGNING_SECRET;
+  // Must read at runtime: Next.js inlines process.env.VAR at build time, so use [] to avoid inlining (Vercel injects env when function runs)
+  const getStripeWebhookSecret = () =>
+    (process.env as Record<string, string | undefined>)['STRIPE_WEBHOOK_SECRET'] ??
+    (process.env as Record<string, string | undefined>)['STRIPE_WEBHOOK_SIGNING_SECRET'];
+  const raw = getStripeWebhookSecret();
   const webhookSecret = typeof raw === 'string' ? raw.trim() : '';
   if (!webhookSecret) {
     // Diagnose: which STRIPE_ vars exist (names only) so we can see if secret is missing or misnamed
