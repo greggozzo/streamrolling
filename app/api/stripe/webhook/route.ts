@@ -2,23 +2,21 @@
 import { headers } from 'next/headers';
 import { clerkClient } from '@clerk/nextjs/server';
 import Stripe from 'stripe';
+import stripeWebhookSecretFromBuild from '@/lib/stripe-webhook-secret.generated';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
 });
 
 export async function POST(req: Request) {
-  // Must be available at runtime. Vercel "Sensitive" vars are NOT available at runtime — only at build. So this var must NOT be marked Sensitive.
-  const env = typeof process !== 'undefined' && process.env ? process.env : {};
-  const raw = env['STRIPE_WEBHOOK_SECRET'] ?? env['STRIPE_WEBHOOK_SIGNING_SECRET'];
-  const webhookSecret = typeof raw === 'string' ? raw.trim() : '';
+  // Secret is injected at build time by scripts/inject-webhook-secret.js (Vercel has STRIPE_WEBHOOK_SECRET during build)
+  const webhookSecret = (typeof stripeWebhookSecretFromBuild === 'string' ? stripeWebhookSecretFromBuild : '').trim();
   if (!webhookSecret) {
-    const stripeKeys = Object.keys(env).filter((k) => k.startsWith('STRIPE_'));
-    console.error('[stripe webhook] STRIPE_WEBHOOK_SECRET missing at runtime. STRIPE_* keys:', stripeKeys.join(', ') || '(none)');
+    console.error('[stripe webhook] STRIPE_WEBHOOK_SECRET was not set when the project was built. In Vercel set the env var and redeploy (build runs the inject script).');
     return Response.json(
       {
         error: 'Webhook secret not configured.',
-        hint: 'In Vercel → Settings → Environment Variables: open STRIPE_WEBHOOK_SECRET and ensure "Sensitive" is UNCHECKED. Sensitive vars are only available at build, not when the webhook runs. Then redeploy.',
+        hint: 'Set STRIPE_WEBHOOK_SECRET in Vercel → Settings → Environment Variables, then redeploy so the build script can inject it.',
       },
       { status: 500 }
     );

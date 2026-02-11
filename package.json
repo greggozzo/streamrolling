@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "node scripts/inject-webhook-secret.js && next build",
     "start": "next start",
     "lint": "next lint"
   },
