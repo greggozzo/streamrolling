@@ -1,23 +1,23 @@
 // app/api/stripe/webhook/route.ts
+
+export const runtime = 'nodejs'; // REQUIRED for Stripe (raw body + crypto)
+
 import { headers } from 'next/headers';
 import { clerkClient } from '@clerk/nextjs/server';
 import Stripe from 'stripe';
-import stripeWebhookSecretFromBuild from '@/lib/stripe-webhook-secret.generated';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
 });
 
 export async function POST(req: Request) {
-  // Secret is injected at build time by scripts/inject-webhook-secret.js (Vercel has STRIPE_WEBHOOK_SECRET during build)
-  const webhookSecret = (typeof stripeWebhookSecretFromBuild === 'string' ? stripeWebhookSecretFromBuild : '').trim();
+  // ✅ Runtime ONLY — no build injection
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
   if (!webhookSecret) {
-    console.error('[stripe webhook] STRIPE_WEBHOOK_SECRET was not set when the project was built. In Vercel set the env var and redeploy (build runs the inject script).');
+    console.error('[stripe webhook] STRIPE_WEBHOOK_SECRET missing at runtime');
     return Response.json(
-      {
-        error: 'Webhook secret not configured.',
-        hint: 'Set STRIPE_WEBHOOK_SECRET in Vercel → Settings → Environment Variables, then redeploy so the build script can inject it.',
-      },
+      { error: 'Webhook secret not configured.' },
       { status: 500 }
     );
   }
@@ -25,93 +25,110 @@ export async function POST(req: Request) {
   const body = await req.text();
   const headersList = await headers();
   const sig = headersList.get('stripe-signature');
+
   if (!sig) {
-    console.error('[stripe webhook] Missing stripe-signature header');
-    return Response.json({ error: 'Missing signature' }, { status: 400 });
+    return Response.json({ error: 'Missing stripe-signature' }, { status: 400 });
   }
 
-  let event;
+  let event: Stripe.Event;
+
   try {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('[stripe webhook] Signature verification failed:', msg);
-    return Response.json({ error: `Webhook signature verification failed: ${msg}` }, { status: 400 });
+  } catch (err) {
+    console.error('[stripe webhook] Signature verification failed:', err);
+    return Response.json(
+      { error: 'Invalid signature' },
+      { status: 400 }
+    );
   }
 
-  console.log('[stripe webhook] Event received:', event.type);
+  console.log('[stripe webhook] Event:', event.type);
 
-  // Handle successful subscription: set isPaid and store subscription ID for cancel-at-period-end
+  /* ================================
+     checkout.session.completed
+     ================================ */
+
   if (event.type === 'checkout.session.completed') {
     let session = event.data.object as Stripe.Checkout.Session;
-    let userId = (session.metadata?.userId ?? session.client_reference_id) as string | undefined;
 
-    // If userId missing from payload, retrieve full session from Stripe (webhook payload can differ)
+    let userId =
+      (session.metadata?.userId ??
+        session.client_reference_id) as string | undefined;
+
+    // sometimes webhook payload lacks metadata — fetch full session
     if (!userId && session.id) {
-      try {
-        const full = await stripe.checkout.sessions.retrieve(session.id);
-        session = full;
-        userId = (full.metadata?.userId ?? full.client_reference_id) as string | undefined;
-      } catch (retrieveErr) {
-        console.error('[stripe webhook] Session retrieve failed:', retrieveErr);
-      }
+      const full = await stripe.checkout.sessions.retrieve(session.id);
+      session = full;
+      userId =
+        (full.metadata?.userId ??
+          full.client_reference_id) as string | undefined;
     }
 
     if (!userId) {
-      console.error('[stripe webhook] checkout.session.completed: no userId. metadata=', session.metadata, 'client_reference_id=', session.client_reference_id);
+      console.error('[stripe webhook] No userId found');
       return Response.json({ error: 'Missing user reference' }, { status: 400 });
     }
 
     const subscriptionId =
-      typeof session.subscription === 'string' ? session.subscription : (session.subscription as Stripe.Subscription)?.id;
+      typeof session.subscription === 'string'
+        ? session.subscription
+        : (session.subscription as Stripe.Subscription)?.id;
 
     try {
       const clerk = await clerkClient();
+
       const existing = await clerk.users.getUser(userId);
-      const existingPublic = (existing.publicMetadata || {}) as Record<string, unknown>;
-      const existingPrivate = (existing.privateMetadata || {}) as Record<string, unknown>;
-      const newPrivate = {
-        ...existingPrivate,
-        isPaid: true,
-        cancelAtPeriodEnd: false,
-        ...(subscriptionId && { stripeSubscriptionId: subscriptionId }),
-      };
+
       await clerk.users.updateUser(userId, {
-        publicMetadata: { ...existingPublic, isPaid: true },
-        privateMetadata: newPrivate,
+        publicMetadata: {
+          ...(existing.publicMetadata || {}),
+          isPaid: true,
+        },
+        privateMetadata: {
+          ...(existing.privateMetadata || {}),
+          isPaid: true,
+          cancelAtPeriodEnd: false,
+          stripeSubscriptionId: subscriptionId,
+        },
       });
-      console.log('[stripe webhook] Clerk updated: userId=', userId, 'subscriptionId=', subscriptionId);
+
+      console.log('[stripe webhook] Clerk updated:', userId);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const stack = err instanceof Error ? err.stack : undefined;
-      console.error('[stripe webhook] Clerk update failed:', msg, stack);
+      console.error('[stripe webhook] Clerk update failed:', err);
       return Response.json({ error: 'Clerk update failed' }, { status: 500 });
     }
   }
 
-  // When subscription actually ends (after period end or immediate cancel), clear isPaid in Clerk
+  /* ================================
+     subscription ended
+     ================================ */
+
   if (event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object as Stripe.Subscription;
-    const userId = subscription.metadata?.userId as string | undefined;
+    const userId = subscription.metadata?.userId;
 
     if (userId) {
       try {
         const clerk = await clerkClient();
+
         const existing = await clerk.users.getUser(userId);
-        const existingPublic = (existing.publicMetadata || {}) as Record<string, unknown>;
-        const existingPrivate = (existing.privateMetadata || {}) as Record<string, unknown>;
+
         await clerk.users.updateUser(userId, {
-          publicMetadata: { ...existingPublic, isPaid: false },
+          publicMetadata: {
+            ...(existing.publicMetadata || {}),
+            isPaid: false,
+          },
           privateMetadata: {
-            ...existingPrivate,
+            ...(existing.privateMetadata || {}),
             isPaid: false,
             cancelAtPeriodEnd: false,
             stripeSubscriptionId: undefined,
           },
         });
-        console.log(`[stripe webhook] User ${userId} subscription ended, isPaid set to false`);
+
+        console.log('[stripe webhook] User downgraded:', userId);
       } catch (err) {
-        console.error('[stripe webhook] Failed to clear Clerk metadata on subscription.deleted:', err);
+        console.error('[stripe webhook] Clerk update failed:', err);
         return Response.json({ error: 'Clerk update failed' }, { status: 500 });
       }
     }
