@@ -8,14 +8,24 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export async function POST(req: Request) {
-  // Trim in case of copy-paste spaces; must be available at runtime (Production + redeploy after setting in Vercel)
-  const raw = process.env.STRIPE_WEBHOOK_SECRET;
+  // Trim in case of copy-paste spaces; try common names (Vercel injects at runtime — redeploy after adding var)
+  const raw =
+    process.env.STRIPE_WEBHOOK_SECRET ??
+    process.env.STRIPE_WEBHOOK_SIGNING_SECRET;
   const webhookSecret = typeof raw === 'string' ? raw.trim() : '';
   if (!webhookSecret) {
-    const envNames = raw === undefined ? 'undefined' : raw === '' ? 'empty string' : typeof raw;
-    console.error('[stripe webhook] STRIPE_WEBHOOK_SECRET not available at runtime:', envNames, '- Check Vercel → Settings → Environment Variables: Production selected, then redeploy.');
+    // Diagnose: which STRIPE_ vars exist (names only) so we can see if secret is missing or misnamed
+    const stripeEnvKeys = Object.keys(process.env || {}).filter((k) => k.startsWith('STRIPE_'));
+    const envStatus = raw === undefined ? 'undefined' : raw === '' ? 'empty string' : typeof raw;
+    console.error(
+      '[stripe webhook] STRIPE_WEBHOOK_SECRET not available. Value:', envStatus,
+      '| STRIPE_* keys at runtime:', stripeEnvKeys.join(', ') || '(none)'
+    );
     return Response.json(
-      { error: 'Webhook secret not configured. In Vercel set STRIPE_WEBHOOK_SECRET for Production and redeploy.' },
+      {
+        error: 'Webhook secret not configured.',
+        hint: 'In Vercel: set STRIPE_WEBHOOK_SECRET for Production, then use Deployments → Redeploy (do not use "Use existing build"). Check function logs for STRIPE_* keys.',
+      },
       { status: 500 }
     );
   }
