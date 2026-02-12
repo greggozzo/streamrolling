@@ -1,4 +1,3 @@
-// components/RollingCalendar.tsx
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -17,16 +16,12 @@ function showDisplayName(s: Show | Record<string, unknown>): string {
   );
 }
 
-function normalizeServiceName(name: string | null | undefined): string {
-  return (name ?? '').toString().trim().toLowerCase();
+function normalize(name?: string | null) {
+  return (name ?? '').trim().toLowerCase();
 }
 
-function showBelongsToService(
-  s: Record<string, unknown>,
-  entryService: string
-) {
-  const service = (s.service ?? s.provider_name ?? '') as string;
-  return normalizeServiceName(service) === normalizeServiceName(entryService);
+function showBelongsToService(s: any, service: string) {
+  return normalize(s.service ?? s.provider_name) === normalize(service);
 }
 
 /* ---------------- types ---------------- */
@@ -66,13 +61,13 @@ export default function RollingCalendar({
     ? clientPlan.months
     : hasServerPlan
     ? initialPlan!.months
-    : clientPlan.months;
+    : [];
 
   const plan = hasClientData
     ? clientPlan.plan
     : hasServerPlan
     ? initialPlan!.plan
-    : clientPlan.plan;
+    : {};
 
   const hasPlanToShow = hasClientData || hasServerPlan;
 
@@ -94,75 +89,66 @@ export default function RollingCalendar({
             Add shows above to see your rolling plan.
           </p>
         ) : (
-          <div className="flex flex-wrap gap-2 sm:gap-3 justify-start">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {months.map((month) => {
               const entry = plan[month.key];
+              const isOpen = openKey === month.key;
 
               const showsForService = entry.service
                 ? shows.filter((s) =>
-                    showBelongsToService(
-                      s as unknown as Record<string, unknown>,
-                      entry.service!
-                    )
+                    showBelongsToService(s, entry.service!)
                   )
                 : [];
-
-              const isOpen = openKey === month.key;
 
               return (
                 <div
                   key={month.key}
-                  className="relative flex flex-col items-stretch text-center shrink-0 min-h-[5.5rem]
+                  className="relative flex flex-col text-center shrink-0
                   w-[calc((100%-1rem)/3)]
                   sm:w-[calc((100%-1.5rem)/4)]
-                  md:w-[calc((100%-1.5rem)/6)]"
-
-                  /* desktop hover */
-                  onMouseEnter={() => setOpenKey(month.key)}
-                  onMouseLeave={() => setOpenKey(null)}
-
-                  /* mobile tap */
-                  onClick={() =>
-                    setOpenKey(isOpen ? null : month.key)
-                  }
+                  md:w-[calc((100%-1.5rem)/6)]
+                  min-h-[5.5rem]"
                 >
                   {/* Month label */}
-                  <div
-                    className="text-[10px] sm:text-xs text-zinc-500 mb-1.5 sm:mb-2 font-mono truncate"
-                    title={month.label}
-                  >
+                  <div className="text-[10px] sm:text-xs text-zinc-500 mb-2 font-mono truncate">
                     {month.label}
                   </div>
 
-                  {/* Service block */}
+                  {/* ---------------- SERVICE CELL ---------------- */}
                   {entry.service ? (
                     <>
-                      <div
-                        className="w-full flex items-center justify-center bg-emerald-600 text-white text-[10px] sm:text-xs font-medium py-2.5 sm:py-3 px-2 rounded-xl sm:rounded-2xl cursor-pointer overflow-hidden"
-                        style={{ minHeight: 52 }}
+                      {/* Click/hover target */}
+                      <button
+                        type="button"
+                        className="w-full bg-emerald-600 text-white text-[10px] sm:text-xs font-medium py-2.5 sm:py-3 px-2 rounded-xl sm:rounded-2xl hover:bg-emerald-500 active:scale-95 transition"
+                        onClick={() =>
+                          setOpenKey(isOpen ? null : month.key)
+                        }
+                        onMouseEnter={() => setOpenKey(month.key)}
+                        onMouseLeave={() => setOpenKey(null)}
                       >
-                        <span
-                          className="truncate block w-full text-center"
-                          title={entry.service}
-                        >
+                        <span className="truncate block w-full">
                           {entry.service}
                         </span>
-                      </div>
+                      </button>
 
+                      {/* live note */}
                       {entry.alsoWatchLive &&
                         entry.alsoWatchLive.length > 0 && (
-                          <p className="mt-1 text-[10px] text-amber-400/90 leading-tight px-1">
+                          <p className="mt-1 text-[10px] text-amber-400/90 leading-tight">
                             You may need{' '}
                             {entry.alsoWatchLive.join(' & ')} this
-                            month too (watch live).
+                            month too.
                           </p>
                         )}
 
-                      {/* Tooltip */}
+                      {/* ---------------- TOOLTIP ---------------- */}
                       {showsForService.length > 0 && (
                         <div
-                          className={`absolute bottom-full mb-3 left-0 right-0 mx-auto w-72 max-h-80 overflow-y-auto
-                          bg-zinc-800 border border-zinc-700 rounded-2xl p-4 text-left text-xs shadow-2xl z-50
+                          className={`absolute top-full mt-2 left-1/2 -translate-x-1/2
+                          w-72 max-h-80 overflow-y-auto
+                          bg-zinc-800 border border-zinc-700 rounded-2xl p-4
+                          text-left text-xs shadow-2xl z-50
                           transition-opacity duration-150
                           ${
                             isOpen
@@ -171,35 +157,34 @@ export default function RollingCalendar({
                           }`}
                           role="tooltip"
                         >
-                          <div className="text-emerald-400 font-semibold mb-3 sticky top-0 bg-zinc-800 pb-1">
+                          <div className="text-emerald-400 font-semibold mb-3">
                             {entry.service} — {month.label}
                           </div>
 
                           <ul className="space-y-1.5 text-zinc-300">
                             {showsForService.map((s, i) => (
                               <li
-                                key={`${month.key}-${
-                                  (s as any).tmdb_id ??
-                                  (s as any).id ??
-                                  i
-                                }`}
-                                className="flex items-center gap-2 flex-wrap"
+                                key={i}
+                                className="flex items-center gap-2"
                               >
                                 <span className="text-zinc-500">•</span>
-                                <span className="text-zinc-200">
+
+                                <span className="flex-1 truncate">
                                   {showDisplayName(s)}
                                 </span>
 
+                                {/* Favorite */}
                                 {(s as Show).favorite && (
-                                  <span className="text-yellow-400">
+                                  <span className="text-yellow-400 text-[11px]">
                                     ★
                                   </span>
                                 )}
 
+                                {/* Live badge (CSS, not emoji) */}
                                 {((s as Show).watchLive ||
                                   (s as any).watch_live) && (
-                                  <span className="text-red-400">
-                                    🔴 Live
+                                  <span className="bg-red-500/20 text-red-400 text-[10px] px-1.5 py-0.5 rounded-md">
+                                    LIVE
                                   </span>
                                 )}
                               </li>
@@ -209,10 +194,7 @@ export default function RollingCalendar({
                       )}
                     </>
                   ) : (
-                    <div
-                      className="w-full flex items-center justify-center text-zinc-600 text-xs sm:text-sm py-2.5 sm:py-3 border border-dashed border-zinc-700 rounded-xl sm:rounded-2xl"
-                      style={{ minHeight: 52 }}
-                    >
+                    <div className="w-full flex items-center justify-center text-zinc-600 text-xs sm:text-sm py-2.5 sm:py-3 border border-dashed border-zinc-700 rounded-xl sm:rounded-2xl">
                       Open
                     </div>
                   )}
