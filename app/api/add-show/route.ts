@@ -1,19 +1,28 @@
 // app/api/add-show/route.ts
-import { getAuth } from '@clerk/nextjs/server';
+import { getAuth, clerkClient } from '@clerk/nextjs/server';
 import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
-  const { userId } = getAuth(request);
+  const { userId } = await getAuth(request);
   if (!userId) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { tmdbId, mediaType = 'tv' } = await request.json();
 
-  // Allow unlimited shows ONLY for your user ID
-  const isPaid = userId === "user_39H6E6HcchOPB0bkshyfERzCzWS";
-
-  console.log(`[add-show] User ${userId} → isPaid: ${isPaid}`);
+  // Use Clerk metadata (set by Stripe webhooks) — no hardcoded user IDs
+  let isPaid = false;
+  try {
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
+    const publicMeta = user.publicMetadata as Record<string, unknown> | undefined;
+    const privateMeta = user.privateMetadata as Record<string, unknown> | undefined;
+    const truthy = (v: unknown) => v === true || v === 'true';
+    isPaid = truthy(publicMeta?.isPaid) || truthy(publicMeta?.is_paid) || truthy(privateMeta?.isPaid) || truthy(privateMeta?.is_paid);
+  } catch (e) {
+    console.error('[add-show] Clerk getUser failed:', e);
+    // if Clerk fails (e.g. SocketError), treat as free to avoid granting paid by mistake
+  }
 
   if (!isPaid) {
     const { data: existing } = await supabase
