@@ -103,27 +103,45 @@ export async function POST(req: Request) {
      Fired when a subscription ends: immediate cancel OR at end of
      billing period after "cancel at period end". Ensure this event
      is enabled in Stripe Dashboard → Webhooks → your endpoint.
-     Clerk removes metadata keys only when value is null (undefined is ignored).
+     Use updateUserMetadata (not updateUser) so null correctly removes keys.
      ===================================================== */
   if (event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object as Stripe.Subscription;
-    const userId = subscription.metadata?.userId as string | undefined;
+    const deletedSubId = subscription.id;
+    let userId = subscription.metadata?.userId as string | undefined;
+
+    console.log('[stripe webhook] customer.subscription.deleted sub=', deletedSubId, 'metadata=', JSON.stringify(subscription.metadata));
+
+    // Fallback: if no userId in metadata, find user by stripeSubscriptionId (e.g. older subscriptions)
+    if (!userId) {
+      try {
+        const clerk = await clerkClient();
+        const { data: users } = await clerk.users.getUserList({ limit: 500 });
+        const match = users.find(
+          (u) =>
+            (u.privateMetadata?.stripeSubscriptionId as string) === deletedSubId ||
+            (u.publicMetadata?.stripeSubscriptionId as string) === deletedSubId
+        );
+        if (match) userId = match.id;
+      } catch (e) {
+        console.warn('[stripe webhook] Fallback user lookup failed:', e);
+      }
+    }
 
     if (!userId) {
-      console.warn('[stripe webhook] customer.subscription.deleted: no userId in subscription.metadata (subscription may predate metadata)');
+      console.warn('[stripe webhook] customer.subscription.deleted: no userId in metadata and no user found with stripeSubscriptionId=', deletedSubId);
     } else {
       try {
         const clerk = await clerkClient();
         const existing = await clerk.users.getUser(userId);
+        console.log('[stripe webhook] Updating Clerk user', userId, 'current privateMetadata:', JSON.stringify(existing.privateMetadata));
 
-        // Clerk removes metadata keys when value is null; undefined leaves the key unchanged
-        await clerk.users.updateUser(userId, {
+        // updateUserMetadata merges metadata and removes keys when value is null
+        await clerk.users.updateUserMetadata(userId, {
           publicMetadata: {
-            ...(existing.publicMetadata as Record<string, unknown> || {}),
             isPaid: false,
           },
           privateMetadata: {
-            ...(existing.privateMetadata as Record<string, unknown> || {}),
             isPaid: false,
             cancelAtPeriodEnd: false,
             stripeSubscriptionId: null,
