@@ -68,9 +68,8 @@ export default function RollingPlanTooltips({
                       >
                         <span className="sr-only">{service}</span>
                       </button>
-                      {entry?.alsoWatchLive && entry.alsoWatchLive.length > 0 && (
-                        <div className="mt-1 sm:mt-1.5 h-4" />
-                      )}
+                      {/* Reserve same space as grid so overlay rows align */}
+                      <div className="mt-1 sm:mt-1.5 min-h-[2.5rem] shrink-0" />
                       {showsForService.length > 0 && (
                         <>
                           {/* Mobile: backdrop to close bottom sheet */}

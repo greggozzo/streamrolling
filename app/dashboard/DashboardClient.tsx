@@ -2,11 +2,12 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
 import { pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
 import ShowCard from '@/components/ShowCard';
-import RollingCalendar from '@/components/RollingCalendar';
+import RollingPlanTooltips from './RollingPlanTooltips';
 import CancelProvidersSidebar from '@/components/CancelProvidersSidebar';
 import Link from 'next/link';
 import SearchBar from '@/components/SearchBar';
@@ -32,6 +33,7 @@ export default function DashboardClient({
   children,
 }: DashboardClientProps) {
   const { userId, isLoaded } = useAuth();
+  const router = useRouter();
   const [shows, setShows] = useState<any[]>(initialShows);
   const [loading, setLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(initialIsPaid);
@@ -126,6 +128,7 @@ export default function DashboardClient({
     if (!confirm('Remove ALL shows? This cannot be undone.')) return;
     await supabase.from('user_shows').delete().eq('user_id', userId);
     setShows([]);
+    router.refresh();
   };
 
   const toggleFavorite = async (tmdbId: number, current: boolean) => {
@@ -135,6 +138,7 @@ export default function DashboardClient({
       body: JSON.stringify({ tmdbId, favorite: !current }),
     });
     setShows(shows.map(s => s.tmdb_id === tmdbId ? { ...s, favorite: !current } : s));
+    router.refresh();
   };
 
   const toggleWatchLive = async (tmdbId: number, current: boolean) => {
@@ -144,6 +148,7 @@ export default function DashboardClient({
       body: JSON.stringify({ tmdbId, watchLive: !current }),
     });
     setShows(shows.map(s => s.tmdb_id === tmdbId ? { ...s, watchLive: !current } : s));
+    router.refresh();
   };
 
   const removeShow = async (tmdbId: number) => {
@@ -154,6 +159,7 @@ export default function DashboardClient({
       body: JSON.stringify({ tmdbId }),
     });
     setShows(shows.filter(s => s.tmdb_id !== tmdbId));
+    router.refresh();
   };
 
   const handleReorder = async (reordered: any[]) => {
@@ -164,6 +170,7 @@ export default function DashboardClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: reordered.map((s) => s.tmdb_id) }),
       });
+      router.refresh();
     } catch (e) {
       console.error('Failed to save order', e);
     }
@@ -222,12 +229,13 @@ export default function DashboardClient({
           <SearchBar />
         </div>
 
-        {/* Rolling Plan — when has shows use live client calendar (updates on reorder/favorite/watch live); else server-rendered first paint */}
+        {/* Rolling Plan — server-rendered so it displays in Firefox/mobile; tooltip overlay when has shows; router.refresh() after mutations updates the grid */}
           <div className="relative min-w-0">
-            {shows.length > 0 ? (
-              <RollingCalendar shows={shows} initialPlan={initialPlan} loading={loading} />
-            ) : (
-              children
+            <div className={shows.length > 0 && initialPlan ? 'pointer-events-none' : undefined}>
+              {children}
+            </div>
+            {shows.length > 0 && initialPlan && (
+              <RollingPlanTooltips shows={shows} plan={initialPlan} />
             )}
           </div>
 

@@ -42,11 +42,14 @@ export default function RollingPlanGrid({ plan }: { plan: PlanPayload }) {
                         {service}
                       </span>
                     </div>
-                    {alsoWatchLive && alsoWatchLive.length > 0 && (
-                      <p className="mt-1 sm:mt-1.5 text-[10px] text-amber-400/90 leading-tight px-0.5 sm:px-1">
-                        You may need {alsoWatchLive.join(' & ')} this month too (watch live). We placed {service} here because it was added first.
-                      </p>
-                    )}
+                    {/* Reserve space so all cells stay same height and row 2 aligns */}
+                    <div className="mt-1 sm:mt-1.5 min-h-[2.5rem] flex items-start justify-center">
+                      {alsoWatchLive && alsoWatchLive.length > 0 ? (
+                        <p className="text-[10px] text-amber-400/90 leading-tight px-0.5 sm:px-1 text-center">
+                          You may need {alsoWatchLive.join(' & ')} this month too (watch live). We placed {service} here because it was added first.
+                        </p>
+                      ) : null}
+                    </div>
                   </>
                 ) : (
                   <div

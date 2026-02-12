@@ -132,15 +132,17 @@ export default function RollingCalendar({
                         </span>
                       </button>
 
-                      {/* live note */}
-                      {entry.alsoWatchLive &&
-                        entry.alsoWatchLive.length > 0 && (
-                          <p className="mt-1 text-[10px] text-amber-400/90 leading-tight">
+                      {/* live note — reserve space so all cells stay same height and row 2 aligns */}
+                      <div className="mt-1 min-h-[2.5rem] flex items-start justify-center">
+                        {entry.alsoWatchLive &&
+                        entry.alsoWatchLive.length > 0 ? (
+                          <p className="text-[10px] text-amber-400/90 leading-tight text-center">
                             You may need{' '}
                             {entry.alsoWatchLive.join(' & ')} this
                             month too.
                           </p>
-                        )}
+                        ) : null}
+                      </div>
 
                       {/* ---------------- TOOLTIP ---------------- */}
                       {showsForService.length > 0 && (
