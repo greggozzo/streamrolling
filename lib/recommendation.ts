@@ -39,6 +39,8 @@ export function calculateSubscriptionWindowFromDates(
   const isComplete = isBefore(lastD, today) || lastD.toDateString() === today.toDateString();
   const firstDate = format(firstD, 'MMM d');
   const lastDate = format(lastD, 'MMM d');
+  // Single date (e.g. movie release): subscribe in month of release, not month after
+  const isSingleDate = firstD.getTime() === lastD.getTime();
 
   if (isComplete) {
     let bingeMonth = startOfMonth(today);
@@ -49,22 +51,24 @@ export function calculateSubscriptionWindowFromDates(
       primarySubscribe: format(bingeMonth, 'MMMM yyyy'),
       primaryCancel: format(addMonths(bingeMonth, 1), 'MMMM yyyy'),
       primaryLabel: 'Watch now',
-      primaryNote: 'Season is complete – binge it in one month',
+      primaryNote: isSingleDate ? 'Movie is available – watch in one month' : 'Season is complete – binge it in one month',
       secondarySubscribe: null,
       firstDate,
       lastDate,
       isComplete: true,
     };
   } else {
-    const bingeMonth = addMonths(lastD, 1);
-    // Alternative = month when first episode airs (subscribe then to watch live)
+    // Future release: for movies use month of release; for TV use month after last episode
+    const subscribeMonth = isSingleDate ? startOfMonth(firstD) : addMonths(lastD, 1);
     const firstEpisodeMonth = startOfMonth(firstD);
     return {
-      primarySubscribe: format(bingeMonth, 'MMMM yyyy'),
-      primaryCancel: format(addMonths(bingeMonth, 1), 'MMMM yyyy'),
+      primarySubscribe: format(subscribeMonth, 'MMMM yyyy'),
+      primaryCancel: format(addMonths(subscribeMonth, 1), 'MMMM yyyy'),
       primaryLabel: 'Subscribe in',
-      primaryNote: 'Binge the whole season in one month → cancel next month',
-      secondarySubscribe: format(firstEpisodeMonth, 'MMMM yyyy'),
+      primaryNote: isSingleDate
+        ? `Available ${firstDate} – watch then cancel next month`
+        : 'Binge the whole season in one month → cancel next month',
+      secondarySubscribe: isSingleDate ? null : format(firstEpisodeMonth, 'MMMM yyyy'),
       firstDate,
       lastDate,
       isComplete: false,

@@ -1,11 +1,18 @@
 // app/movie/[id]/page.tsx
 import { getMovieDetails } from '@/lib/tmdb';
+import { calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
+import { pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
 import Image from 'next/image';
 import AddToMyShowsButton from '@/components/AddToMyShowsButton';
 
 export default async function MoviePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const movie = await getMovieDetails(id);
+
+  const window = calculateSubscriptionWindowFromDates(movie.release_date);
+  const flatrate = movie['watch/providers']?.results?.US?.flatrate;
+  const serviceName = pickPrimaryProvider(flatrate);
+  const provider = getProviderForServiceName(serviceName);
 
   const posterUrl = movie.poster_path
     ? `https://image.tmdb.org/t/p/w780${movie.poster_path}`
@@ -31,14 +38,28 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
           <div>
             <h1 className="text-5xl font-bold mb-2">{movie.title}</h1>
             {movie.release_date && <p className="text-zinc-400">Released: {movie.release_date}</p>}
-            {movie.vote_average && <p className="text-emerald-400">Rating: {movie.vote_average.toFixed(1)} / 10</p>}
+            {typeof movie.vote_average === 'number' && movie.vote_average > 0 && (
+              <p className="text-emerald-400">Rating: {movie.vote_average.toFixed(1)} / 10</p>
+            )}
             <p className="text-zinc-400 text-lg mt-4">{movie.overview}</p>
           </div>
 
-          <div className="bg-zinc-900 rounded-3xl p-8 space-y-8">
+          <div className="bg-zinc-900 rounded-3xl p-8 space-y-10">
             <div>
-              <p className="uppercase tracking-widest text-emerald-400 text-sm mb-1">RECOMMENDATION</p>
-              <p className="text-4xl font-bold text-emerald-400">Watch now</p>
+              <p className="uppercase tracking-widest text-emerald-400 text-sm mb-1">Primary Recommendation</p>
+              <p className="text-4xl font-bold text-emerald-400 flex items-center gap-3 flex-wrap">
+                Subscribe to {provider ? (
+                  <>
+                    <Image src={provider.logoUrl} alt={provider.name} width={32} height={32} className="rounded object-contain h-8 w-auto" unoptimized />
+                    <span>{provider.name}</span>
+                  </>
+                ) : (
+                  <span>{serviceName}</span>
+                )}{' '}
+                in {window.primarySubscribe}
+              </p>
+              <p className="text-zinc-400 mt-2">{window.primaryNote}</p>
+              <p className="text-sm text-zinc-500 mt-1">Cancel by {window.primaryCancel}</p>
             </div>
 
             <AddToMyShowsButton tmdbId={movie.id} mediaType="movie" />
