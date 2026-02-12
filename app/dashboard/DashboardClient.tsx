@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
 import { pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
 import ShowCard from '@/components/ShowCard';
-import RollingPlanTooltips from './RollingPlanTooltips';
+import RollingCalendar from '@/components/RollingCalendar';
 import CancelProvidersSidebar from '@/components/CancelProvidersSidebar';
 import Link from 'next/link';
 import SearchBar from '@/components/SearchBar';
@@ -222,13 +222,12 @@ export default function DashboardClient({
           <SearchBar />
         </div>
 
-        {/* Rolling Plan — server-rendered for first paint (Firefox/mobile); tooltips overlay when client has shows */}
+        {/* Rolling Plan — when has shows use live client calendar (updates on reorder/favorite/watch live); else server-rendered first paint */}
           <div className="relative min-w-0">
-            <div className={shows.length > 0 && initialPlan ? 'pointer-events-none' : undefined}>
-              {children}
-            </div>
-            {shows.length > 0 && initialPlan && (
-              <RollingPlanTooltips shows={shows} plan={initialPlan} />
+            {shows.length > 0 ? (
+              <RollingCalendar shows={shows} initialPlan={initialPlan} loading={loading} />
+            ) : (
+              children
             )}
           </div>
 
