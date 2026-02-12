@@ -100,19 +100,20 @@ export async function POST(req: Request) {
 
   /* =====================================================
      customer.subscription.deleted → set isPaid = false in Clerk
-     Fired when a subscription ends: immediate cancel OR at end of
-     billing period after "cancel at period end". Ensure this event
-     is enabled in Stripe Dashboard → Webhooks → your endpoint.
-     Use updateUserMetadata (not updateUser) so null correctly removes keys.
+     Same Clerk update pattern as checkout.session.completed (updateUser + spread).
      ===================================================== */
   if (event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object as Stripe.Subscription;
     const deletedSubId = subscription.id;
     let userId = subscription.metadata?.userId as string | undefined;
 
-    console.log('[stripe webhook] customer.subscription.deleted sub=', deletedSubId, 'metadata=', JSON.stringify(subscription.metadata));
+    // Sometimes metadata isn't included — fetch full subscription
+    if (!userId && subscription.id) {
+      const full = await stripe.subscriptions.retrieve(subscription.id);
+      userId = full.metadata?.userId as string | undefined;
+    }
 
-    // Fallback: if no userId in metadata, find user by stripeSubscriptionId (e.g. older subscriptions)
+    // Fallback: find user by stripeSubscriptionId (e.g. older subscriptions)
     if (!userId) {
       try {
         const clerk = await clerkClient();
@@ -129,22 +130,26 @@ export async function POST(req: Request) {
     }
 
     if (!userId) {
-      console.warn('[stripe webhook] customer.subscription.deleted: no userId in metadata and no user found with stripeSubscriptionId=', deletedSubId);
+      console.warn('[stripe webhook] customer.subscription.deleted: no userId (sub=', deletedSubId, ')');
     } else {
       try {
         const clerk = await clerkClient();
         const existing = await clerk.users.getUser(userId);
-        console.log('[stripe webhook] Updating Clerk user', userId, 'current privateMetadata:', JSON.stringify(existing.privateMetadata));
 
-        // updateUserMetadata merges metadata and removes keys when value is null
-        await clerk.users.updateUserMetadata(userId, {
+        // Same pattern as checkout.session.completed: updateUser with spread existing, then override
+        const existingPublic = (existing.publicMetadata || {}) as Record<string, unknown>;
+        const existingPrivate = (existing.privateMetadata || {}) as Record<string, unknown>;
+        const { stripeSubscriptionId: _, ...restPrivate } = existingPrivate;
+
+        await clerk.users.updateUser(userId, {
           publicMetadata: {
+            ...existingPublic,
             isPaid: false,
           },
           privateMetadata: {
+            ...restPrivate,
             isPaid: false,
             cancelAtPeriodEnd: false,
-            stripeSubscriptionId: null,
           },
         });
 
