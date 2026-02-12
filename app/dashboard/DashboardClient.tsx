@@ -223,7 +223,7 @@ export default function DashboardClient({
         </div>
 
         {/* Rolling Plan — server-rendered for first paint (Firefox/mobile); tooltips overlay when client has shows */}
-          <div className="relative">
+          <div className="relative min-w-0">
             <div className={shows.length > 0 && initialPlan ? 'pointer-events-none' : undefined}>
               {children}
             </div>

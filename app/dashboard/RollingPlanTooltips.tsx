@@ -39,8 +39,8 @@ export default function RollingPlanTooltips({
         <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 invisible select-none shrink-0">
           Your Rolling Plan
         </h2>
-        <div className="rounded-2xl sm:rounded-3xl p-4 sm:p-8 flex-1 min-h-0">
-          <div className="flex flex-wrap gap-2 sm:gap-3 justify-start pointer-events-auto min-h-full content-start">
+        <div className="rounded-2xl sm:rounded-3xl p-4 sm:p-8 flex-1 min-h-0 min-w-0">
+          <div className="flex flex-wrap gap-2 sm:gap-3 justify-start pointer-events-auto min-h-full content-start min-w-0">
             {months.map((month) => {
               const entry = planMap[month.key];
               const service = entry?.service ?? null;
@@ -53,7 +53,7 @@ export default function RollingPlanTooltips({
               return (
                 <div
                   key={month.key}
-                  className="flex flex-col items-stretch text-center relative shrink-0 min-h-[5.5rem] w-[calc((100%-1rem)/3)] sm:w-[calc((100%-2.25rem)/4)] md:w-[calc((100%-3.75rem)/6)]"
+                  className="flex flex-col items-stretch text-center relative shrink-0 min-h-[5.5rem] min-w-0 w-[calc((100%-1rem)/3)] sm:w-[calc((100%-2.25rem)/4)] md:w-[calc((100%-3.75rem)/6)]"
                 >
                   <div className="shrink-0 h-[1.25rem] sm:h-5 w-full" />
                   {service ? (
@@ -72,34 +72,70 @@ export default function RollingPlanTooltips({
                         <div className="mt-1 sm:mt-1.5 h-4" />
                       )}
                       {showsForService.length > 0 && (
-                        <div
-                          className={`absolute top-full mt-2 w-72 max-w-[min(18rem,calc(100vw-2rem))] max-h-80 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-2xl p-4 text-left text-xs shadow-2xl z-50 transition-opacity duration-150 -translate-x-1/2 ${
-                            isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-                          }`}
-                          style={{
-                            // Center tooltip but keep fully on screen (w-72 = 18rem, so center between 10rem and 100%-10rem)
-                            left: 'clamp(10rem, 50%, calc(100% - 10rem))',
-                          }}
-                          role="tooltip"
-                        >
-                          <div className="text-emerald-400 font-semibold mb-3">
-                            {service} — {month.label}
+                        <>
+                          {/* Mobile: backdrop to close bottom sheet */}
+                          <div
+                            className={`sm:hidden fixed inset-0 bg-black/50 z-[99] transition-opacity duration-200 ${
+                              isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                            }`}
+                            aria-hidden
+                            onClick={() => setOpenKey(null)}
+                          />
+                          {/* Mobile: fixed bottom sheet so full list is visible and scrollable */}
+                          <div
+                            className={`sm:hidden fixed inset-x-0 bottom-0 max-h-[70vh] overflow-y-auto bg-zinc-800 border-t border-zinc-700 rounded-t-2xl p-4 pb-[env(safe-area-inset-bottom)] text-left text-xs shadow-2xl z-[100] transition-transform duration-200 ${
+                              isOpen ? 'opacity-100 pointer-events-auto translate-y-0' : 'opacity-0 pointer-events-none translate-y-full'
+                            }`}
+                            role="dialog"
+                            aria-label={`${service} — ${month.label}`}
+                          >
+                            <div className="text-emerald-400 font-semibold mb-3 sticky top-0 bg-zinc-800 pt-1 pb-2">
+                              {service} — {month.label}
+                            </div>
+                            <ul className="space-y-1.5 text-zinc-300">
+                              {showsForService.map((s, i) => (
+                                <li key={i} className="flex items-center gap-2">
+                                  <span className="text-zinc-500">•</span>
+                                  <span className="flex-1 truncate">{showDisplayName(s)}</span>
+                                  {(s as Show).favorite && <span className="text-yellow-400">★</span>}
+                                  {((s as Show).watchLive || (s as any).watch_live) && (
+                                    <span className="bg-red-500/20 text-red-400 text-[10px] px-1.5 py-0.5 rounded-md">
+                                      LIVE
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                          <ul className="space-y-1.5 text-zinc-300">
-                            {showsForService.map((s, i) => (
-                              <li key={i} className="flex items-center gap-2">
-                                <span className="text-zinc-500">•</span>
-                                <span className="flex-1 truncate">{showDisplayName(s)}</span>
-                                {(s as Show).favorite && <span className="text-yellow-400">★</span>}
-                                {((s as Show).watchLive || (s as any).watch_live) && (
-                                  <span className="bg-red-500/20 text-red-400 text-[10px] px-1.5 py-0.5 rounded-md">
-                                    LIVE
-                                  </span>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
+                          {/* Desktop: absolute popover next to cell */}
+                          <div
+                            className={`hidden sm:block absolute top-full mt-2 w-72 max-w-[min(18rem,calc(100vw-2rem))] max-h-80 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-2xl p-4 text-left text-xs shadow-2xl z-50 transition-opacity duration-150 -translate-x-1/2 ${
+                              isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                            }`}
+                            style={{
+                              left: 'clamp(10rem, 50%, calc(100% - 10rem))',
+                            }}
+                            role="tooltip"
+                          >
+                            <div className="text-emerald-400 font-semibold mb-3">
+                              {service} — {month.label}
+                            </div>
+                            <ul className="space-y-1.5 text-zinc-300">
+                              {showsForService.map((s, i) => (
+                                <li key={i} className="flex items-center gap-2">
+                                  <span className="text-zinc-500">•</span>
+                                  <span className="flex-1 truncate">{showDisplayName(s)}</span>
+                                  {(s as Show).favorite && <span className="text-yellow-400">★</span>}
+                                  {((s as Show).watchLive || (s as any).watch_live) && (
+                                    <span className="bg-red-500/20 text-red-400 text-[10px] px-1.5 py-0.5 rounded-md">
+                                      LIVE
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </>
                       )}
                     </>
                   ) : (

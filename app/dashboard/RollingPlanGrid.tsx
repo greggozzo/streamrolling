@@ -12,10 +12,10 @@ export default function RollingPlanGrid({ plan }: { plan: PlanPayload }) {
   if (!months?.length) return null;
 
   return (
-    <div className="mb-12 sm:mb-16">
+    <div className="mb-12 sm:mb-16 min-w-0">
       <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Your Rolling Plan</h2>
-      <div className="bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-8 overflow-visible">
-        <div className="flex flex-wrap gap-2 sm:gap-3 justify-start">
+      <div className="bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-8 overflow-visible min-w-0">
+        <div className="flex flex-wrap gap-2 sm:gap-3 justify-start min-w-0">
           {months.map((month) => {
             const entry = planMap[month.key];
             const service = entry?.service ?? null;
@@ -24,7 +24,7 @@ export default function RollingPlanGrid({ plan }: { plan: PlanPayload }) {
             return (
               <div
                 key={month.key}
-                className="flex flex-col items-stretch text-center relative shrink-0 min-h-[5.5rem] w-[calc((100%-1rem)/3)] sm:w-[calc((100%-2.25rem)/4)] md:w-[calc((100%-3.75rem)/6)]"
+                className="flex flex-col items-stretch text-center relative shrink-0 min-h-[5.5rem] min-w-0 w-[calc((100%-1rem)/3)] sm:w-[calc((100%-2.25rem)/4)] md:w-[calc((100%-3.75rem)/6)]"
               >
                 <div
                   className="text-[10px] sm:text-xs text-zinc-500 mb-1.5 sm:mb-2 font-mono w-full truncate shrink-0"
