@@ -1,7 +1,7 @@
 // app/movie/[id]/page.tsx
 import { getMovieDetails } from '@/lib/tmdb';
 import { calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
-import { pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
+import { getFlatrateFromRegions, pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
 import Image from 'next/image';
 import AddToMyShowsButton from '@/components/AddToMyShowsButton';
 
@@ -10,9 +10,10 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
   const movie = await getMovieDetails(id);
 
   const window = calculateSubscriptionWindowFromDates(movie.release_date);
-  const flatrate = movie['watch/providers']?.results?.US?.flatrate;
+  const flatrate = getFlatrateFromRegions(movie['watch/providers']);
   const serviceName = pickPrimaryProvider(flatrate);
   const provider = getProviderForServiceName(serviceName);
+  const hasKnownService = serviceName !== 'Unknown';
 
   const posterUrl = movie.poster_path
     ? `https://image.tmdb.org/t/p/w780${movie.poster_path}`
@@ -48,17 +49,27 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
             <div>
               <p className="uppercase tracking-widest text-emerald-400 text-sm mb-1">Primary Recommendation</p>
               <p className="text-4xl font-bold text-emerald-400 flex items-center gap-3 flex-wrap">
-                Subscribe to {provider ? (
+                {hasKnownService ? (
                   <>
-                    <Image src={provider.logoUrl} alt={provider.name} width={32} height={32} className="rounded object-contain h-8 w-auto" unoptimized />
-                    <span>{provider.name}</span>
+                    Subscribe to{' '}
+                    {provider ? (
+                      <>
+                        <Image src={provider.logoUrl} alt={provider.name} width={32} height={32} className="rounded object-contain h-8 w-auto" unoptimized />
+                        <span>{provider.name}</span>
+                      </>
+                    ) : (
+                      <span>{serviceName}</span>
+                    )}{' '}
+                    in {window.primarySubscribe}
                   </>
                 ) : (
-                  <span>{serviceName}</span>
-                )}{' '}
-                in {window.primarySubscribe}
+                  <>Subscribe in {window.primarySubscribe}</>
+                )}
               </p>
               <p className="text-zinc-400 mt-2">{window.primaryNote}</p>
+              {!hasKnownService && (
+                <p className="text-sm text-zinc-500 mt-1">Streaming service not yet listed for this title on TMDB.</p>
+              )}
               <p className="text-sm text-zinc-500 mt-1">Cancel by {window.primaryCancel}</p>
             </div>
 

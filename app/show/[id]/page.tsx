@@ -1,7 +1,7 @@
 // app/show/[id]/page.tsx
 import { getShowDetails, getNextSeasonEpisodes } from '@/lib/tmdb';
 import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
-import { pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
+import { getFlatrateFromRegions, pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
 import Image from 'next/image';
 import AddToMyShowsButton from '@/components/AddToMyShowsButton';
 
@@ -14,7 +14,7 @@ export default async function ShowPage({ params }: { params: Promise<{ id: strin
     ? calculateSubscriptionWindow(episodes)
     : calculateSubscriptionWindowFromDates(show.first_air_date, show.last_air_date);
 
-  const flatrate = show['watch/providers']?.results?.US?.flatrate;
+  const flatrate = getFlatrateFromRegions(show['watch/providers']);
   const serviceName = pickPrimaryProvider(flatrate);
   const provider = getProviderForServiceName(serviceName);
 

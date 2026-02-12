@@ -62,6 +62,27 @@ function toDisplayName(name: string): string {
   return DISPLAY_NORMALIZE[n] ?? n;
 }
 
+/** TMDB watch/providers response shape (results by country code). */
+type WatchProvidersResults = Record<string, { flatrate?: { provider_name?: string }[] } | undefined>;
+
+/**
+ * Get flatrate list from the first region that has it (US first, then GB, CA, then any).
+ * TMDB often has no US data for unreleased titles; other regions may list the service.
+ */
+export function getFlatrateFromRegions(
+  watchProviders: { results?: WatchProvidersResults } | null | undefined,
+  regions: string[] = ['US', 'GB', 'CA']
+): { provider_name?: string }[] | null | undefined {
+  const results = watchProviders?.results;
+  if (!results || typeof results !== 'object') return undefined;
+  for (const code of regions) {
+    const flatrate = results[code]?.flatrate;
+    if (flatrate?.length) return flatrate;
+  }
+  const first = Object.values(results).find((r) => r?.flatrate?.length);
+  return first?.flatrate ?? undefined;
+}
+
 /**
  * From TMDB watch/providers flatrate list, pick the primary service name.
  * Prefers the direct service (e.g. "Paramount+") over channel variants.
