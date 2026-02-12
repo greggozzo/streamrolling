@@ -105,8 +105,8 @@ export default function RollingCalendar({
                   key={month.key}
                   className="relative flex flex-col text-center shrink-0
                   w-[calc((100%-1rem)/3)]
-                  sm:w-[calc((100%-1.5rem)/4)]
-                  md:w-[calc((100%-1.5rem)/6)]
+                  sm:w-[calc((100%-2.25rem)/4)]
+                  md:w-[calc((100%-3.75rem)/6)]
                   min-h-[5.5rem]"
                 >
                   {/* Month label */}

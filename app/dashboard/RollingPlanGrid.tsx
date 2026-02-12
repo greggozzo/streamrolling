@@ -24,7 +24,7 @@ export default function RollingPlanGrid({ plan }: { plan: PlanPayload }) {
             return (
               <div
                 key={month.key}
-                className="flex flex-col items-stretch text-center relative shrink-0 min-h-[5.5rem] w-[calc((100%-1rem)/3)] sm:w-[calc((100%-1.5rem)/4)] md:w-[calc((100%-1.5rem)/6)]"
+                className="flex flex-col items-stretch text-center relative shrink-0 min-h-[5.5rem] w-[calc((100%-1rem)/3)] sm:w-[calc((100%-2.25rem)/4)] md:w-[calc((100%-3.75rem)/6)]"
               >
                 <div
                   className="text-[10px] sm:text-xs text-zinc-500 mb-1.5 sm:mb-2 font-mono w-full truncate shrink-0"

@@ -22,7 +22,7 @@ export default function SearchBar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search any show or movie..."
-          className="w-full bg-white/10 border border-white/20 rounded-2xl py-5 px-6 text-xl placeholder-zinc-400 focus:outline-none focus:border-emerald-400"
+          className="w-full bg-white/10 border border-white/20 rounded-2xl py-5 pl-6 pr-28 sm:pr-32 text-xl placeholder-zinc-400 focus:outline-none focus:border-emerald-400"
         />
         <button
           type="submit"
