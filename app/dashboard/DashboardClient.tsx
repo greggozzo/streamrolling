@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
 import { pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
 import ShowCard from '@/components/ShowCard';
-import RollingCalendar from '@/components/RollingCalendar';
+import RollingPlanTooltips from './RollingPlanTooltips';
 import CancelProvidersSidebar from '@/components/CancelProvidersSidebar';
 import Link from 'next/link';
 import SearchBar from '@/components/SearchBar';
@@ -20,6 +20,8 @@ interface DashboardClientProps {
   initialShows?: any[];
   /** Server-computed plan so calendar displays without client-side buildRollingPlan (fixes Firefox/mobile). */
   initialPlan?: InitialPlanPayload | null;
+  /** Server-rendered calendar (or empty state) — in initial HTML for Firefox/mobile. */
+  children?: React.ReactNode;
 }
 
 export default function DashboardClient({
@@ -27,6 +29,7 @@ export default function DashboardClient({
   initialCancelAtPeriodEnd = false,
   initialShows = [],
   initialPlan = null,
+  children,
 }: DashboardClientProps) {
   const { userId, isLoaded } = useAuth();
   const [shows, setShows] = useState<any[]>(initialShows);
@@ -219,8 +222,15 @@ export default function DashboardClient({
           <SearchBar />
         </div>
 
-        {/* Rolling Plan — tooltips require client component */}
-          <RollingCalendar shows={shows} initialPlan={initialPlan} loading={loading} />
+        {/* Rolling Plan — server-rendered for first paint (Firefox/mobile); tooltips overlay when client has shows */}
+          <div className="relative">
+            <div className={shows.length > 0 && initialPlan ? 'pointer-events-none' : undefined}>
+              {children}
+            </div>
+            {shows.length > 0 && initialPlan && (
+              <RollingPlanTooltips shows={shows} plan={initialPlan} />
+            )}
+          </div>
 
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mt-10 sm:mt-16 mb-6 sm:mb-8">

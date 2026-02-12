@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { loadUserShows } from '@/lib/load-user-shows';
 import { buildRollingPlan } from '@/lib/planner';
 import DashboardClient from './DashboardClient';
+import RollingPlanGrid from './RollingPlanGrid';
 import type { InitialPlanPayload } from '@/components/RollingCalendar';
 
 /** Load isPaid, shows, and pre-computed plan on the server so the calendar displays in all browsers (Firefox/mobile). */
@@ -55,6 +56,17 @@ export default async function DashboardPage() {
       initialCancelAtPeriodEnd={initialCancelAtPeriodEnd}
       initialShows={initialShows}
       initialPlan={initialPlan}
-    />
+    >
+      {initialPlan ? (
+        <RollingPlanGrid plan={initialPlan} />
+      ) : (
+        <div className="mb-12 sm:mb-16">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Your Rolling Plan</h2>
+          <div className="bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-8">
+            <p className="text-zinc-500 text-sm text-center py-8">Add shows above to see your rolling plan.</p>
+          </div>
+        </div>
+      )}
+    </DashboardClient>
   );
 }
