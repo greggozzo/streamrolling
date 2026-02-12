@@ -36,7 +36,6 @@ export function calculateSubscriptionWindowFromDates(
   const firstD = first ?? last!;
   const lastD = last ?? first!;
   const today = new Date();
-  const currentMonth = startOfMonth(today);
   const isComplete = isBefore(lastD, today) || lastD.toDateString() === today.toDateString();
   const firstDate = format(firstD, 'MMM d');
   const lastDate = format(lastD, 'MMM d');
@@ -58,13 +57,14 @@ export function calculateSubscriptionWindowFromDates(
     };
   } else {
     const bingeMonth = addMonths(lastD, 1);
-    // Alternative = current month so user can watch live now (not first-episode month, which may be in the past)
+    // Alternative = month when first episode airs (subscribe then to watch live)
+    const firstEpisodeMonth = startOfMonth(firstD);
     return {
       primarySubscribe: format(bingeMonth, 'MMMM yyyy'),
       primaryCancel: format(addMonths(bingeMonth, 1), 'MMMM yyyy'),
       primaryLabel: 'Subscribe in',
       primaryNote: 'Binge the whole season in one month → cancel next month',
-      secondarySubscribe: format(currentMonth, 'MMMM yyyy'),
+      secondarySubscribe: format(firstEpisodeMonth, 'MMMM yyyy'),
       firstDate,
       lastDate,
       isComplete: false,
@@ -107,14 +107,14 @@ export function calculateSubscriptionWindow(episodes: any[], fallbackFirst?: str
     };
   } else {
     const bingeMonth = addMonths(last, 1);
-    // Alternative = current month so user can watch live now (not first-episode month, which may be in the past)
-    const currentMonth = startOfMonth(today);
+    // Alternative = month when first episode airs (subscribe then to watch live)
+    const firstEpisodeMonth = startOfMonth(first);
     return {
       primarySubscribe: format(bingeMonth, 'MMMM yyyy'),
       primaryCancel: format(addMonths(bingeMonth, 1), 'MMMM yyyy'),
       primaryLabel: 'Subscribe in',
       primaryNote: 'Binge the whole season in one month → cancel next month',
-      secondarySubscribe: format(currentMonth, 'MMMM yyyy'),
+      secondarySubscribe: format(firstEpisodeMonth, 'MMMM yyyy'),
       firstDate,
       lastDate,
       isComplete: false,
