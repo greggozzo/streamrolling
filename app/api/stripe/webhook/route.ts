@@ -103,26 +103,30 @@ export async function POST(req: Request) {
      Fired when a subscription ends: immediate cancel OR at end of
      billing period after "cancel at period end". Ensure this event
      is enabled in Stripe Dashboard → Webhooks → your endpoint.
+     Clerk removes metadata keys only when value is null (undefined is ignored).
      ===================================================== */
   if (event.type === 'customer.subscription.deleted') {
     const subscription = event.data.object as Stripe.Subscription;
     const userId = subscription.metadata?.userId as string | undefined;
 
-    if (userId) {
+    if (!userId) {
+      console.warn('[stripe webhook] customer.subscription.deleted: no userId in subscription.metadata (subscription may predate metadata)');
+    } else {
       try {
         const clerk = await clerkClient();
         const existing = await clerk.users.getUser(userId);
 
+        // Clerk removes metadata keys when value is null; undefined leaves the key unchanged
         await clerk.users.updateUser(userId, {
           publicMetadata: {
-            ...(existing.publicMetadata || {}),
+            ...(existing.publicMetadata as Record<string, unknown> || {}),
             isPaid: false,
           },
           privateMetadata: {
-            ...(existing.privateMetadata || {}),
+            ...(existing.privateMetadata as Record<string, unknown> || {}),
             isPaid: false,
             cancelAtPeriodEnd: false,
-            stripeSubscriptionId: undefined,
+            stripeSubscriptionId: null,
           },
         });
 
@@ -131,8 +135,6 @@ export async function POST(req: Request) {
         console.error('[stripe webhook] Clerk update failed:', err);
         return Response.json({ error: 'Clerk update failed' }, { status: 500 });
       }
-    } else {
-      console.warn('[stripe webhook] customer.subscription.deleted: no userId in subscription.metadata (subscription may predate metadata)');
     }
   }
 
