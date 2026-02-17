@@ -11,12 +11,29 @@
 
 Set `EMAIL_PROVIDER=ses` (default) or `EMAIL_PROVIDER=smtp`.
 
-### AWS SES
+### AWS SES (API, not SMTP)
+
+We use the **SES API** (AWS SDK `SendEmail`), not the SES SMTP endpoint. You need **IAM credentials**, not the “SMTP credentials” from the SES console.
 
 - `EMAIL_PROVIDER=ses` (or leave unset)
 - `EMAIL_FROM` or `SES_FROM`: verified sender address (e.g. `notifications@yourdomain.com`)
 - `AWS_REGION` or `SES_REGION`: e.g. `us-east-1`
-- AWS credentials: set via `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, or IAM role in production.
+- **IAM credentials**: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` for an IAM user/role with permission to send email, e.g.:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "ses:SendEmail",
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+Do **not** use the SES “SMTP credentials” (username/password from SES console); those are only for the SMTP interface.
 
 ### SMTP (e.g. SendGrid, Mailgun, or any SMTP)
 
