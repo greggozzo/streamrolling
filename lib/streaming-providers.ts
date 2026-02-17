@@ -170,7 +170,7 @@ export const STREAMING_PROVIDERS: StreamingProvider[] = [
     name: 'Peacock',
     cancelUrl: 'https://www.peacocktv.com/account',
     logoUrl: 'https://media.themoviedb.org/t/p/original/2aGrp1xw3qhwCYvNGAJZPdjfeeX.jpg',
-    aliases: ['Peacock'],
+    aliases: ['Peacock', 'Peacock Premium', 'Peacock Premium Plus'],
   },
   {
     id: 'youtube',
