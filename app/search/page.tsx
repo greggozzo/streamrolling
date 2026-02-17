@@ -1,6 +1,7 @@
 // app/search/page.tsx
 import { searchShows, searchMovies } from '@/lib/tmdb';
 import ShowCard from '@/components/ShowCard';
+import SearchBar from '@/components/SearchBar';
 import Link from 'next/link';
 
 export default async function SearchPage({ searchParams }: { searchParams: { q?: string } }) {
@@ -20,6 +21,9 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
   return (
     <div className="min-h-screen bg-zinc-950 text-white py-12">
       <div className="max-w-7xl mx-auto px-6">
+        <div className="mb-8">
+          <SearchBar initialQuery={query} />
+        </div>
         <div className="flex items-center gap-4 mb-8">
           <Link href="/" className="text-emerald-400 hover:text-emerald-300">← Back</Link>
           <h1 className="text-4xl font-bold">Results for “{query}”</h1>
