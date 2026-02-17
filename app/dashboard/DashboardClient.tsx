@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
-import { pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
+import { getFlatrateFromRegions, pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
 import ShowCard from '@/components/ShowCard';
 import RollingPlanTooltips from './RollingPlanTooltips';
 import CancelProvidersSidebar from '@/components/CancelProvidersSidebar';
@@ -116,7 +116,7 @@ export default function DashboardClient({
               : calculateSubscriptionWindowFromDates(details.first_air_date, details.last_air_date);
           }
 
-          const flatrate = details['watch/providers']?.results?.US?.flatrate;
+          const flatrate = getFlatrateFromRegions(details['watch/providers']);
           const service = pickPrimaryProvider(flatrate);
 
           return {

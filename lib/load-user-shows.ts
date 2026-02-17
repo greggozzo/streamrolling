@@ -4,7 +4,7 @@
  */
 import { supabase } from '@/lib/supabase';
 import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
-import { pickPrimaryProvider } from '@/lib/streaming-providers';
+import { getFlatrateFromRegions, pickPrimaryProvider } from '@/lib/streaming-providers';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
@@ -47,7 +47,7 @@ export async function loadUserShows(userId: string): Promise<any[]> {
             : calculateSubscriptionWindowFromDates(details.first_air_date, details.last_air_date);
       }
 
-      const flatrate = details['watch/providers']?.results?.US?.flatrate;
+      const flatrate = getFlatrateFromRegions(details['watch/providers']);
       const service = pickPrimaryProvider(flatrate);
 
       return {
