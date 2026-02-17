@@ -6,8 +6,8 @@ import {
 } from '@/lib/notification-preferences';
 
 /** GET: return current user's notification preferences. */
-export async function GET() {
-  const { userId } = await getAuth();
+export async function GET(request: Request) {
+  const { userId } = await getAuth(request);
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -19,7 +19,7 @@ export async function GET() {
 
 /** PATCH: update notification preferences. Body: { email_rolling_reminder_enabled?: boolean } */
 export async function PATCH(request: Request) {
-  const { userId } = await getAuth();
+  const { userId } = await getAuth(request);
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

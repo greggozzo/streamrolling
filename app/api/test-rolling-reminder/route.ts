@@ -9,16 +9,16 @@ import { loadUserShows } from '@/lib/load-user-shows';
 import { buildRollingPlan, getNext12MonthKeys, formatMonth } from '@/lib/planner';
 import { sendRollingReminder } from '@/lib/email';
 
-export async function GET() {
-  return sendTestReminder();
+export async function GET(request: Request) {
+  return sendTestReminder(request);
 }
 
-export async function POST() {
-  return sendTestReminder();
+export async function POST(request: Request) {
+  return sendTestReminder(request);
 }
 
-async function sendTestReminder() {
-  const { userId } = await getAuth();
+async function sendTestReminder(request: Request) {
+  const { userId } = await getAuth(request);
   if (!userId) {
     return NextResponse.json({ error: 'Sign in to send a test email' }, { status: 401 });
   }
