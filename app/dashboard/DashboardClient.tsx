@@ -40,8 +40,27 @@ export default function DashboardClient({
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(initialCancelAtPeriodEnd);
   const [cancelling, setCancelling] = useState(false);
   type ViewMode = 'cards' | 'compact' | 'list';
+  const VIEW_MODE_KEY = 'streamrolling-dashboard-view';
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [draggedId, setDraggedId] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem(VIEW_MODE_KEY) : null;
+      if (saved === 'cards' || saved === 'compact' || saved === 'list') setViewMode(saved);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const setViewModePersisted = (mode: ViewMode) => {
+    setViewMode(mode);
+    try {
+      if (typeof window !== 'undefined') localStorage.setItem(VIEW_MODE_KEY, mode);
+    } catch {
+      // ignore
+    }
+  };
 
   useEffect(() => {
     setIsPaid(initialIsPaid);
@@ -249,7 +268,7 @@ export default function DashboardClient({
                 <button
                   key={mode}
                   type="button"
-                  onClick={() => setViewMode(mode)}
+                  onClick={() => setViewModePersisted(mode)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
                     viewMode === mode ? 'bg-emerald-600 text-white' : 'text-zinc-400 hover:text-white'
                   }`}
