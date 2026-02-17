@@ -91,10 +91,10 @@ export default async function ManageSubscriptionsPage() {
                   </a>
                 ) : (
                   <a
-                    href="#service-list"
+                    href="#service-list-current"
                     className="text-emerald-400 hover:text-emerald-300 text-sm font-medium underline"
                   >
-                    Find cancel link in table below →
+                    Find cancel link in table below (current month is first row) →
                   </a>
                 )}
               </div>
@@ -121,8 +121,12 @@ export default async function ManageSubscriptionsPage() {
               </tr>
             </thead>
             <tbody>
-              {orderedProviders.map((p) => (
-                <tr key={p.id} className="border-b border-zinc-800/80 last:border-0">
+              {orderedProviders.map((p, index) => (
+                <tr
+                  key={p.id}
+                  id={index === 0 ? 'service-list-current' : undefined}
+                  className="border-b border-zinc-800/80 last:border-0"
+                >
                   <td className="py-4 px-4 sm:px-6 font-medium">{p.name}</td>
                   <td className="py-4 px-4 sm:px-6">
                     <a
