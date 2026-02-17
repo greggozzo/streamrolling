@@ -3,7 +3,33 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { loadUserShows } from '@/lib/load-user-shows';
 import { buildRollingPlan, getNext12MonthKeys, formatMonth } from '@/lib/planner';
-import { STREAMING_PROVIDERS, getProviderForServiceName } from '@/lib/streaming-providers';
+import {
+  STREAMING_PROVIDERS,
+  getProviderForServiceName,
+  type StreamingProvider,
+} from '@/lib/streaming-providers';
+
+/** Order providers by rolling plan: services in month order (first appearance) first, then the rest in STREAMING_PROVIDERS order. */
+function providersInPlanOrder(
+  plan: Record<string, { service: string | null }>,
+  monthKeys: string[]
+): StreamingProvider[] {
+  const seenIds = new Set<string>();
+  const ordered: StreamingProvider[] = [];
+  for (const key of monthKeys) {
+    const service = plan[key]?.service ?? null;
+    if (!service) continue;
+    const provider = getProviderForServiceName(service);
+    if (provider && !seenIds.has(provider.id)) {
+      seenIds.add(provider.id);
+      ordered.push(provider);
+    }
+  }
+  for (const p of STREAMING_PROVIDERS) {
+    if (!seenIds.has(p.id)) ordered.push(p);
+  }
+  return ordered;
+}
 
 /** Manage subscriptions: cancel links (and later affiliate subscribe links). All external links live here so emails only link to our domain. */
 export default async function ManageSubscriptionsPage() {
@@ -17,6 +43,7 @@ export default async function ManageSubscriptionsPage() {
   let cancelService: string | null = null;
   let cancelUrl: string | null = null;
   let subscribeService: string | null = null;
+  let orderedProviders = STREAMING_PROVIDERS;
   if (shows.length > 0) {
     const { plan } = buildRollingPlan(shows);
     cancelService = plan[currentMonthKey]?.service ?? null;
@@ -25,6 +52,7 @@ export default async function ManageSubscriptionsPage() {
       const provider = getProviderForServiceName(cancelService);
       if (provider?.cancelUrl) cancelUrl = provider.cancelUrl;
     }
+    orderedProviders = providersInPlanOrder(plan, months);
   }
 
   const cancelByLabel = `end of ${formatMonth(currentMonthKey)}`;
@@ -88,7 +116,7 @@ export default async function ManageSubscriptionsPage() {
               </tr>
             </thead>
             <tbody>
-              {STREAMING_PROVIDERS.map((p) => (
+              {orderedProviders.map((p) => (
                 <tr key={p.id} className="border-b border-zinc-800/80 last:border-0">
                   <td className="py-4 px-4 sm:px-6 font-medium">{p.name}</td>
                   <td className="py-4 px-4 sm:px-6">
