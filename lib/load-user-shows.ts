@@ -58,6 +58,7 @@ export async function loadUserShows(userId: string): Promise<any[]> {
         favorite: !!dbShow.favorite,
         watchLive: !!dbShow.watch_live,
         tmdb_id: dbShow.tmdb_id,
+        media_type: dbShow.media_type || (isMovie ? 'movie' : 'tv'),
         addedOrder: index,
       };
     })

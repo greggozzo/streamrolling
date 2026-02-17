@@ -108,6 +108,7 @@ export default function DashboardClient({
             favorite: !!dbShow.favorite,
             watchLive: !!dbShow.watch_live,
             tmdb_id: dbShow.tmdb_id,
+            media_type: dbShow.media_type || (isMovie ? 'movie' : 'tv'),
             addedOrder: index,
           };
         })
@@ -363,7 +364,7 @@ export default function DashboardClient({
                   className={`flex items-center gap-3 bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 cursor-grab active:cursor-grabbing ${isDragging ? 'opacity-50' : ''}`}
                 >
                   <span className="text-zinc-500 pl-2 shrink-0 select-none" aria-hidden>⋮⋮</span>
-                  <Link href={show.media_type === 'movie' ? `/movie/${show.id}` : `/show/${show.id}`} className="min-w-0 flex-1 flex items-center gap-4 py-2 pr-2">
+                  <Link href={(show.media_type === 'movie' ? '/movie/' : '/show/') + (show.id ?? show.tmdb_id)} className="min-w-0 flex-1 flex items-center gap-4 py-2 pr-2">
                     <img
                       src={show.poster_path ? `https://image.tmdb.org/t/p/w154${show.poster_path}` : 'https://picsum.photos/id/1015/92/138'}
                       alt={show.title}

@@ -3,7 +3,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 interface Show {
-  id: number;
+  id?: number;
+  tmdb_id?: number;
   name?: string;           // TV
   title?: string;          // Movie
   poster_path: string | null;
@@ -18,7 +19,8 @@ export default function ShowCard({ show, compact = false }: { show: Show; compac
     ? `https://image.tmdb.org/t/p/${compact ? 'w185' : 'w500'}${show.poster_path}`
     : 'https://picsum.photos/id/1015/300/450';
 
-  const href = type === 'movie' ? `/movie/${show.id}` : `/show/${show.id}`;
+  const id = show.id ?? show.tmdb_id;
+  const href = id != null ? (type === 'movie' ? `/movie/${id}` : `/show/${id}`) : '#';
 
   return (
     <Link href={href} className={`group relative overflow-hidden shadow-xl block ${compact ? 'rounded-2xl' : 'rounded-3xl'}`}>
