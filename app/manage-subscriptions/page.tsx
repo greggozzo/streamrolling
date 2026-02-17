@@ -85,12 +85,17 @@ export default async function ManageSubscriptionsPage() {
                     href={cancelUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-emerald-400 hover:text-emerald-300 text-sm font-medium underline"
+                    className="inline-block bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-xl"
                   >
-                    Go to cancel page →
+                    Go to {cancelService} cancel page →
                   </a>
                 ) : (
-                  <span className="text-zinc-500 text-sm">(see table below for link)</span>
+                  <a
+                    href="#service-list"
+                    className="text-emerald-400 hover:text-emerald-300 text-sm font-medium underline"
+                  >
+                    Find cancel link in table below →
+                  </a>
                 )}
               </div>
             )}
@@ -105,7 +110,7 @@ export default async function ManageSubscriptionsPage() {
         </div>
       )}
 
-      <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
+      <div id="service-list" className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
