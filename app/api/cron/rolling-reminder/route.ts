@@ -10,6 +10,7 @@ import { clerkClient } from '@clerk/nextjs/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { loadUserShows } from '@/lib/load-user-shows';
 import { buildRollingPlan, getNext12MonthKeys, formatMonth } from '@/lib/planner';
+import { getProviderForServiceName } from '@/lib/streaming-providers';
 import { sendRollingReminder } from '@/lib/email';
 import {
   countRollingRemindersLast6Months,
@@ -90,9 +91,12 @@ export async function GET(request: Request) {
       const nextPlan = plan[nextMonthKey];
       const cancelService = currentPlan?.service ?? null;
       const subscribeService = nextPlan?.service ?? null;
+      const cancelProvider = cancelService ? getProviderForServiceName(cancelService) : null;
+      const cancelUrl = cancelProvider?.cancelUrl ?? null;
 
       const ok = await sendRollingReminder(email, {
         cancelService,
+        cancelUrl,
         cancelBy: cancelByLabel,
         subscribeService,
         subscribeMonthLabel,

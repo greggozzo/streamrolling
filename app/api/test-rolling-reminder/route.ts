@@ -7,6 +7,7 @@ import { getAuth, clerkClient } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { loadUserShows } from '@/lib/load-user-shows';
 import { buildRollingPlan, getNext12MonthKeys, formatMonth } from '@/lib/planner';
+import { getProviderForServiceName } from '@/lib/streaming-providers';
 import { sendRollingReminder } from '@/lib/email';
 
 export async function GET(request: Request) {
@@ -41,15 +42,19 @@ async function sendTestReminder(request: Request) {
   const subscribeMonthLabel = formatMonth(nextMonthKey);
 
   let cancelService: string | null = null;
+  let cancelUrl: string | null = null;
   let subscribeService: string | null = null;
   if (shows.length > 0) {
     const { plan } = buildRollingPlan(shows);
     cancelService = plan[currentMonthKey]?.service ?? null;
     subscribeService = plan[nextMonthKey]?.service ?? null;
+    const cancelProvider = cancelService ? getProviderForServiceName(cancelService) : null;
+    if (cancelProvider?.cancelUrl) cancelUrl = cancelProvider.cancelUrl;
   }
 
   const ok = await sendRollingReminder(email, {
     cancelService,
+    cancelUrl,
     cancelBy: cancelByLabel,
     subscribeService,
     subscribeMonthLabel,
