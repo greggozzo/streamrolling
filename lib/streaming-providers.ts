@@ -107,6 +107,8 @@ export interface StreamingProvider {
   name: string;
   /** Official account or cancel subscription page. */
   cancelUrl: string;
+  /** Optional: affiliate or signup URL for subscribe column on manage-subscriptions page. */
+  subscribeUrl?: string;
   /** Logo image URL (external or /logo.svg in public). */
   logoUrl: string;
   /** Optional: match TMDB/provider names for consistency (e.g. "HBO Max" vs "Max"). */

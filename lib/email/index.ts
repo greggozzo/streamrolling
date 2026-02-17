@@ -38,11 +38,9 @@ export async function sendMail(payload: MailPayload): Promise<boolean> {
   }
 }
 
-/** Payload for the rolling plan reminder email. */
+/** Payload for the rolling plan reminder email. Links in email point only to our domain (manage-subscriptions) to protect deliverability. */
 export interface RollingReminderPayload {
   cancelService: string | null;
-  /** Official cancel/manage URL from streaming-providers (optional). */
-  cancelUrl?: string | null;
   cancelBy: string;
   subscribeService: string | null;
   subscribeMonthLabel: string;
@@ -51,15 +49,14 @@ export interface RollingReminderPayload {
 
 const SITE_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Streamrolling';
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://streamrolling.com';
+const MANAGE_URL = `${BASE_URL}/manage-subscriptions`;
 
 export function buildRollingReminderHtml(payload: RollingReminderPayload): string {
-  const { cancelService, cancelUrl, cancelBy, subscribeService, subscribeMonthLabel } = payload;
+  const { cancelService, cancelBy, subscribeService, subscribeMonthLabel } = payload;
 
   const cancelBlock =
     cancelService != null
-      ? cancelUrl
-        ? `<p style="margin:0 0 8px 0; font-size: 15px; color: #e4e4e7;">Cancel <a href="${escapeHtml(cancelUrl)}" style="color: #34d399; font-weight: 700; text-decoration: none;">${escapeHtml(cancelService)}</a> by ${escapeHtml(cancelBy)}.</p><p style="margin:0; font-size: 13px;"><a href="${escapeHtml(cancelUrl)}" style="color: #34d399; text-decoration: underline;">Go to cancel page →</a></p>`
-        : `<p style="margin:0; font-size: 15px; color: #e4e4e7;">Cancel <strong>${escapeHtml(cancelService)}</strong> by ${escapeHtml(cancelBy)}.</p>`
+      ? `<p style="margin:0 0 8px 0; font-size: 15px; color: #e4e4e7;">Cancel <strong>${escapeHtml(cancelService)}</strong> by ${escapeHtml(cancelBy)}.</p><p style="margin:0; font-size: 13px;"><a href="${escapeHtml(MANAGE_URL)}" style="color: #34d399; text-decoration: underline;">Get cancel link →</a></p>`
       : '<p style="margin:0; font-size: 15px; color: #a1a1aa;">No subscription to cancel this month.</p>';
 
   const subscribeBlock =
@@ -112,7 +109,7 @@ export function buildRollingReminderHtml(payload: RollingReminderPayload): strin
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top: 24px;">
                       <tr>
                         <td align="center">
-                          <a href="${escapeHtml(BASE_URL)}/dashboard" style="display: inline-block; background: #34d399; color: #022c22; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 28px; border-radius: 10px;">View your plan</a>
+                          <a href="${escapeHtml(MANAGE_URL)}" style="display: inline-block; background: #34d399; color: #022c22; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 28px; border-radius: 10px;">Manage subscriptions</a>
                         </td>
                       </tr>
                     </table>
@@ -136,18 +133,16 @@ export function buildRollingReminderHtml(payload: RollingReminderPayload): strin
 }
 
 export function buildRollingReminderText(payload: RollingReminderPayload): string {
-  const { cancelService, cancelUrl, cancelBy, subscribeService, subscribeMonthLabel } = payload;
+  const { cancelService, cancelBy, subscribeService, subscribeMonthLabel } = payload;
   const cancelLine =
     cancelService != null
-      ? cancelUrl
-        ? `Cancel ${cancelService} by ${cancelBy}.\nCancel link: ${cancelUrl}`
-        : `Cancel ${cancelService} by ${cancelBy}.`
+      ? `Cancel ${cancelService} by ${cancelBy}.`
       : 'No subscription to cancel this month.';
   const subscribeLine =
     subscribeService != null
       ? `Subscribe to ${subscribeService} for ${subscribeMonthLabel}.`
       : 'No new subscription needed for next month.';
-  return `Your rolling plan reminder – ${SITE_NAME}\n\n${cancelLine}\n\n${subscribeLine}\n\nView your plan: ${BASE_URL}/dashboard\n\nTurn off these emails: ${BASE_URL}/settings/notifications`;
+  return `Your rolling plan reminder – ${SITE_NAME}\n\n${cancelLine}\n\n${subscribeLine}\n\nGet cancel & subscribe links: ${MANAGE_URL}\n\nView your plan: ${BASE_URL}/dashboard\n\nTurn off these emails: ${BASE_URL}/settings/notifications`;
 }
 
 function escapeHtml(s: string): string {
