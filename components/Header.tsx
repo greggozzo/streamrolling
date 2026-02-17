@@ -18,6 +18,7 @@ export default function Header() {
           <Link href="/" className="hover:text-emerald-400 transition-colors">Home</Link>
           <SignedIn>
             <Link href="/dashboard" className="hover:text-emerald-400 transition-colors">My Shows</Link>
+            <Link href="/settings/notifications" className="hover:text-emerald-400 transition-colors">Notifications</Link>
           </SignedIn>
           <SignedOut>
             <SignInButton mode="modal">

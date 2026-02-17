@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.991.0",
     "@clerk/backend": "^1.33.1",
     "@clerk/nextjs": "^6.20.0",
     "@hookform/resolvers": "^5.0.1",
@@ -23,6 +24,7 @@
     "date-fns": "^4.1.0",
     "lucide-react": "^0.511.0",
     "next": "^15.4.2",
+    "nodemailer": "^8.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.56.4",
