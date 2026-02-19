@@ -37,8 +37,9 @@ export default function Header() {
   return (
     <header className="border-b border-zinc-800 bg-zinc-950 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-3">
-        <Link href="/" className="flex items-center min-w-0 shrink-0">
-          <Image src="/logo.jpg" alt="Streamrolling" width={160} height={40} className="h-8 sm:h-9 w-auto object-contain" priority />
+        <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
+          <Image src="/logo.jpg" alt="" width={200} height={56} className="h-10 sm:h-12 w-auto object-contain shrink-0" priority />
+          <span className="text-xl sm:text-3xl font-bold tracking-tighter truncate">Streamrolling</span>
         </Link>
 
         <nav className="flex items-center gap-3 sm:gap-8 text-sm sm:text-lg shrink-0">
