@@ -3,6 +3,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { UserButton, SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
 
 function MenuIcon({ open }: { open: boolean }) {
@@ -36,11 +37,8 @@ export default function Header() {
   return (
     <header className="border-b border-zinc-800 bg-zinc-950 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-3">
-        <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-emerald-500 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-black shrink-0">
-            S
-          </div>
-          <span className="text-xl sm:text-3xl font-bold tracking-tighter truncate">Streamrolling</span>
+        <Link href="/" className="flex items-center min-w-0 shrink-0">
+          <Image src="/logo.jpg" alt="Streamrolling" width={160} height={40} className="h-8 sm:h-9 w-auto object-contain" priority />
         </Link>
 
         <nav className="flex items-center gap-3 sm:gap-8 text-sm sm:text-lg shrink-0">
