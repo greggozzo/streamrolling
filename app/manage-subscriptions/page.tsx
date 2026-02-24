@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import Link from 'next/link';
 import { loadUserShows } from '@/lib/load-user-shows';
 import { buildRollingPlan, getNext12MonthKeys, formatMonth } from '@/lib/planner';
@@ -8,6 +9,8 @@ import {
   getProviderForServiceName,
   type StreamingProvider,
 } from '@/lib/streaming-providers';
+import { getTrackAndRedirectPath } from '@/lib/track-link';
+import { upsertUserAggregate } from '@/lib/user-aggregate';
 
 /** Order providers by rolling plan: services in month order (first appearance) first, then the rest in STREAMING_PROVIDERS order. */
 function providersInPlanOrder(
@@ -55,6 +58,11 @@ export default async function ManageSubscriptionsPage() {
     orderedProviders = providersInPlanOrder(plan, months);
   }
 
+  await upsertUserAggregate(userId, {
+    headers: await headers(),
+    favorites: shows.filter((s) => s.favorite).map((s) => ({ tmdb_id: s.tmdb_id, media_type: s.media_type ?? 'tv', title: s.title })),
+  });
+
   const cancelByLabel = `end of ${formatMonth(currentMonthKey)}`;
   const subscribeMonthLabel = formatMonth(nextMonthKey);
 
@@ -82,7 +90,7 @@ export default async function ManageSubscriptionsPage() {
                 <span className="text-zinc-500 text-sm">by {cancelByLabel}</span>
                 {cancelUrl ? (
                   <a
-                    href={cancelUrl}
+                    href={getTrackAndRedirectPath(cancelUrl, { type: 'cancel', service: getProviderForServiceName(cancelService)?.id ?? cancelService })}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-xl"
@@ -130,7 +138,7 @@ export default async function ManageSubscriptionsPage() {
                   <td className="py-4 px-4 sm:px-6 font-medium">{p.name}</td>
                   <td className="py-4 px-4 sm:px-6">
                     <a
-                      href={p.cancelUrl}
+                      href={getTrackAndRedirectPath(p.cancelUrl, { type: 'cancel', service: p.id })}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-emerald-400 hover:text-emerald-300 underline"
@@ -141,7 +149,7 @@ export default async function ManageSubscriptionsPage() {
                   <td className="py-4 px-4 sm:px-6">
                     {p.subscribeUrl ? (
                       <a
-                        href={p.subscribeUrl}
+                        href={getTrackAndRedirectPath(p.subscribeUrl, { type: 'subscribe', service: p.id })}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-emerald-400 hover:text-emerald-300 underline"

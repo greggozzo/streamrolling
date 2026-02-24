@@ -1,7 +1,9 @@
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { loadUserShows } from '@/lib/load-user-shows';
 import { buildRollingPlan } from '@/lib/planner';
+import { upsertUserAggregate } from '@/lib/user-aggregate';
 import DashboardClient from './DashboardClient';
 import RollingPlanGrid from './RollingPlanGrid';
 import type { InitialPlanPayload } from '@/components/RollingCalendar';
@@ -43,6 +45,15 @@ export default async function DashboardPage() {
           ),
         };
       }
+
+      await upsertUserAggregate(userId, {
+        headers: await headers(),
+        favorites: initialShows.filter((s) => s.favorite).map((s) => ({
+          tmdb_id: s.tmdb_id,
+          media_type: s.media_type ?? 'tv',
+          title: s.title,
+        })),
+      });
     } catch (e) {
       console.error('[dashboard] server load', e);
     }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { STREAMING_PROVIDERS } from '@/lib/streaming-providers';
+import { getTrackAndRedirectPath } from '@/lib/track-link';
 
 export default function CancelProvidersSidebar() {
   return (
@@ -24,7 +25,7 @@ function ProviderCancelButton({ provider }: { provider: (typeof STREAMING_PROVID
   const [logoError, setLogoError] = useState(false);
   return (
     <a
-      href={provider.cancelUrl}
+      href={getTrackAndRedirectPath(provider.cancelUrl, { type: 'cancel', service: provider.id })}
       target="_blank"
       rel="noopener noreferrer"
       className="flex items-center gap-3 w-full min-h-[44px] rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-left text-zinc-200 transition-colors hover:border-zinc-500 hover:bg-zinc-800"

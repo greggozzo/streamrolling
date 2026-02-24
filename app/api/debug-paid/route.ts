@@ -2,7 +2,7 @@
 import { getAuth } from '@clerk/nextjs/server';
 
 export async function GET(request: Request) {
-  const { userId } = getAuth(request);
+  const { userId } = await getAuth(request);
 
   if (!userId) {
     return Response.json({ error: 'Not signed in' }, { status: 401 });
