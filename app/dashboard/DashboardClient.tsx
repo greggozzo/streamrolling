@@ -283,23 +283,21 @@ export default function DashboardClient({
                   ))}
                 </div>
                 {currentPlan ? (
-                  <>
-                    <div className={currentPlan ? 'pointer-events-none' : undefined}>
+                  <div className="relative min-w-0">
+                    <div className="pointer-events-none">
                       <RollingPlanGridClient plan={currentPlan} title={planTitle} />
                     </div>
-                    {currentPlan && (
-                      <RollingPlanTooltips
-                        shows={
-                          planView === 'all'
-                            ? shows
-                            : planView === 'favorites'
-                              ? shows.filter((s) => s.favorite)
-                              : shows.filter((s) => s.watchLive ?? s.watch_live)
-                        }
-                        plan={currentPlan}
-                      />
-                    )}
-                  </>
+                    <RollingPlanTooltips
+                      shows={
+                        planView === 'all'
+                          ? shows
+                          : planView === 'favorites'
+                            ? shows.filter((s) => s.favorite)
+                            : shows.filter((s) => s.watchLive ?? s.watch_live)
+                      }
+                      plan={currentPlan}
+                    />
+                  </div>
                 ) : (
                   <div className="mb-12 sm:mb-16">
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">{planTitle}</h2>
