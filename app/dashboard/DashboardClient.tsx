@@ -1,8 +1,9 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { buildRollingPlan } from '@/lib/planner';
 import { getProviderForServiceName } from '@/lib/streaming-providers';
 import ShowCard from '@/components/ShowCard';
 import RollingPlanTooltips from './RollingPlanTooltips';
@@ -12,6 +13,26 @@ import Link from 'next/link';
 import SearchBar from '@/components/SearchBar';
 
 import type { InitialPlanPayload } from '@/components/RollingCalendar';
+
+function planToPayload(shows: any[]): InitialPlanPayload | null {
+  if (shows.length === 0) return null;
+  const normalized = shows.map((s, i) => ({
+    ...s,
+    watchLive: s.watchLive ?? s.watch_live ?? false,
+    favorite: !!s.favorite,
+    addedOrder: s.addedOrder ?? i,
+  }));
+  const { months, plan } = buildRollingPlan(normalized);
+  return {
+    months,
+    plan: Object.fromEntries(
+      Object.entries(plan).map(([k, v]) => [
+        k,
+        { service: v.service, alsoWatchLive: v.alsoWatchLive },
+      ])
+    ),
+  };
+}
 
 type PlanView = 'all' | 'favorites' | 'watch_live';
 
@@ -58,12 +79,21 @@ export default function DashboardClient({
     } catch {}
   };
 
-  const currentPlan =
-    planView === 'all'
-      ? initialPlan
-      : planView === 'favorites'
-        ? initialPlanFavorites
-        : initialPlanWatchLive;
+  const currentPlan = useMemo(() => {
+    if (planView === 'all') return initialPlan;
+    if (planView === 'favorites') {
+      if (initialPlanFavorites) return initialPlanFavorites;
+      const favs = shows.filter((s) => s.favorite === true);
+      return planToPayload(favs);
+    }
+    if (planView === 'watch_live') {
+      if (initialPlanWatchLive) return initialPlanWatchLive;
+      const live = shows.filter((s) => s.watchLive === true || s.watch_live === true);
+      return planToPayload(live);
+    }
+    return null;
+  }, [planView, initialPlan, initialPlanFavorites, initialPlanWatchLive, shows]);
+
   const planTitle =
     planView === 'all'
       ? 'Your Rolling Plan'
