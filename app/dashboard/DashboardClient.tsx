@@ -3,9 +3,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
-import { getFlatrateFromRegions, pickPrimaryProvider, getProviderForServiceName } from '@/lib/streaming-providers';
+import { getProviderForServiceName } from '@/lib/streaming-providers';
 import ShowCard from '@/components/ShowCard';
 import RollingPlanTooltips from './RollingPlanTooltips';
 import CancelProvidersSidebar from '@/components/CancelProvidersSidebar';
@@ -75,65 +73,13 @@ export default function DashboardClient({
 
     async function load() {
       try {
-        let data: any[] | null = null;
-        const { data: sortData, error: sortError } = await supabase
-          .from('user_shows')
-          .select('*')
-          .eq('user_id', userId)
-          .order('sort_order', { ascending: true });
-        if (sortError) {
-          const { data: fallback } = await supabase
-            .from('user_shows')
-            .select('*')
-            .eq('user_id', userId)
-            .order('id', { ascending: true });
-          data = fallback;
-        } else {
-          data = sortData;
+        const res = await fetch('/api/my-shows', { cache: 'no-store' });
+        if (!res.ok) {
+          setShows([]);
+          return;
         }
-
-        const loaded = await Promise.all(
-          (data || []).map(async (dbShow: any, index: number) => {
-          const isMovie = dbShow.media_type === 'movie';
-          const endpoint = isMovie 
-            ? `https://api.themoviedb.org/3/movie/${dbShow.tmdb_id}`
-            : `https://api.themoviedb.org/3/tv/${dbShow.tmdb_id}`;
-
-          const res = await fetch(`${endpoint}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}&append_to_response=watch/providers`);
-          const details = await res.json();
-
-          let window: { primarySubscribe: string; primaryCancel: string; secondarySubscribe?: string | null; isComplete: boolean };
-          if (isMovie) {
-            window = calculateSubscriptionWindowFromDates(details.release_date);
-          } else {
-            const epRes = await fetch(
-              `https://api.themoviedb.org/3/tv/${dbShow.tmdb_id}/season/${details.number_of_seasons || 1}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
-            );
-            const season = await epRes.json();
-            const episodes = season.episodes || [];
-            window = episodes.length > 0
-              ? calculateSubscriptionWindow(episodes)
-              : calculateSubscriptionWindowFromDates(details.first_air_date, details.last_air_date);
-          }
-
-          const flatrate = getFlatrateFromRegions(details['watch/providers']);
-          const service = pickPrimaryProvider(flatrate);
-
-          return {
-            ...details,
-            title: details.title || details.name || 'Unknown',
-            window,
-            service,
-            favorite: !!dbShow.favorite,
-            watchLive: !!dbShow.watch_live,
-            tmdb_id: dbShow.tmdb_id,
-            media_type: dbShow.media_type || (isMovie ? 'movie' : 'tv'),
-            addedOrder: index,
-          };
-        })
-        );
-
-        setShows(loaded);
+        const loaded = await res.json();
+        setShows(Array.isArray(loaded) ? loaded : []);
       } catch (e) {
         console.error('[dashboard] load failed', e);
       } finally {
@@ -146,9 +92,11 @@ export default function DashboardClient({
 
   const removeAllShows = async () => {
     if (!confirm('Remove ALL shows? This cannot be undone.')) return;
-    await supabase.from('user_shows').delete().eq('user_id', userId);
-    setShows([]);
-    router.refresh();
+    const res = await fetch('/api/my-shows/remove-all', { method: 'POST' });
+    if (res.ok) {
+      setShows([]);
+      router.refresh();
+    }
   };
 
   const toggleFavorite = async (tmdbId: number, current: boolean) => {

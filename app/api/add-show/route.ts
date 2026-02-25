@@ -1,6 +1,6 @@
 // app/api/add-show/route.ts
 import { getAuth, clerkClient } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseForUserShows } from '@/lib/supabase-server';
 
 export async function POST(request: Request) {
   const { userId } = await getAuth(request);
@@ -9,6 +9,7 @@ export async function POST(request: Request) {
   }
 
   const { tmdbId, mediaType = 'tv' } = await request.json();
+  const supabase = getSupabaseForUserShows();
 
   // Use Clerk metadata (set by Stripe webhooks) — no hardcoded user IDs
   let isPaid = false;

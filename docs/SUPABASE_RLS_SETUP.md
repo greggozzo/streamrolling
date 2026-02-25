@@ -4,6 +4,22 @@ This app uses **Clerk** for auth, not Supabase Auth. Supabase therefore has no b
 
 ---
 
+## Enable `user_shows` RLS without issues (Option A — already implemented)
+
+The codebase is set up for **Option A**: server-only access to `user_shows` via the service role, and no client-side Supabase for that table. To enable RLS without breaking anything:
+
+1. **Set `SUPABASE_SERVICE_ROLE_KEY`** in your env (Vercel, local `.env`). Get it from Supabase Dashboard → **Settings** → **API** → "service_role" (secret).
+2. **Deploy or run the app** so the server uses the service role for `user_shows` (see "Option A" below for what's already in place).
+3. **Enable RLS** in Supabase Dashboard → SQL Editor:
+   ```sql
+   ALTER TABLE public.user_shows ENABLE ROW LEVEL SECURITY;
+   ```
+   Do **not** add any policy for the `anon` role. The app does not need anon to read/write `user_shows`; only the service role (used on the server) will access it.
+
+After this, the anon key can no longer read or write `user_shows`. All access goes through your API routes and server code using the service role.
+
+---
+
 ## 1. Check if RLS is already enabled
 
 **In Supabase Dashboard:**

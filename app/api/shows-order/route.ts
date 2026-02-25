@@ -1,5 +1,5 @@
 import { getAuth } from '@clerk/nextjs/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseForUserShows } from '@/lib/supabase-server';
 
 /** POST body: { order: number[] } — tmdb_ids in the desired dashboard order. */
 export async function POST(request: Request) {
@@ -17,6 +17,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Body must be { order: number[] }' }, { status: 400 });
   }
 
+  const supabase = getSupabaseForUserShows();
   for (let i = 0; i < order.length; i++) {
     const { error } = await supabase
       .from('user_shows')

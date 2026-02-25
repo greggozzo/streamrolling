@@ -1,8 +1,9 @@
 /**
  * Load a user's shows with TMDB details (window, service). Used on server so the
  * dashboard and calendar render with data on first paint in all browsers.
+ * Uses service role when SUPABASE_SERVICE_ROLE_KEY is set (required when RLS is enabled on user_shows).
  */
-import { supabase } from '@/lib/supabase';
+import { getSupabaseForUserShows } from '@/lib/supabase-server';
 import { calculateSubscriptionWindow, calculateSubscriptionWindowFromDates } from '@/lib/recommendation';
 import { getFlatrateFromRegions, pickPrimaryProvider } from '@/lib/streaming-providers';
 
@@ -10,14 +11,15 @@ const TMDB_BASE = 'https://api.themoviedb.org/3';
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
 export async function loadUserShows(userId: string): Promise<any[]> {
-  const { data: sortData, error: sortError } = await supabase
+  const client = getSupabaseForUserShows();
+  const { data: sortData, error: sortError } = await client
     .from('user_shows')
     .select('*')
     .eq('user_id', userId)
     .order('sort_order', { ascending: true });
 
   let rows: any[] | null = sortError
-    ? (await supabase.from('user_shows').select('*').eq('user_id', userId).order('id', { ascending: true })).data
+    ? (await client.from('user_shows').select('*').eq('user_id', userId).order('id', { ascending: true })).data
     : sortData;
 
   if (!rows?.length) return [];
