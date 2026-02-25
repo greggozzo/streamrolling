@@ -421,10 +421,10 @@ export default function DashboardClient({
                       onClick={() => toggleWatchLive(show.tmdb_id, show.watchLive ?? show.watch_live)}
                       disabled={show.window.isComplete}
                       className={`text-sm px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl border transition-colors ${
-                        show.watchLive ?? show.watch_live
-                          ? 'bg-emerald-600 text-white border-emerald-600'
-                          : show.window.isComplete
-                            ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed line-through'
+                        show.window.isComplete
+                          ? 'bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed'
+                          : show.watchLive ?? show.watch_live
+                            ? 'bg-emerald-600 text-white border-emerald-600'
                             : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'
                       } ${viewMode === 'compact' ? 'text-xs px-2 py-1' : ''}`}
                     >
@@ -471,7 +471,7 @@ export default function DashboardClient({
                   </Link>
                   <div className="flex flex-wrap gap-2 items-center shrink-0 pr-3">
                     <button onClick={() => toggleFavorite(show.tmdb_id, show.favorite)} className={`text-xl transition-all ${show.favorite ? 'text-yellow-400 scale-110' : 'text-zinc-600 hover:text-yellow-400'}`}>★</button>
-                    <button onClick={() => toggleWatchLive(show.tmdb_id, show.watchLive ?? show.watch_live)} disabled={show.window.isComplete} className={`text-sm px-3 py-1.5 rounded-xl border transition-colors ${show.watchLive ?? show.watch_live ? 'bg-emerald-600 text-white border-emerald-600' : show.window.isComplete ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border-zinc-700' : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'}`}>{show.window.isComplete ? 'Completed' : 'Watch Live'}</button>
+                    <button onClick={() => toggleWatchLive(show.tmdb_id, show.watchLive ?? show.watch_live)} disabled={show.window.isComplete} className={`text-sm px-3 py-1.5 rounded-xl border transition-colors ${show.window.isComplete ? 'bg-zinc-800 text-zinc-500 border-zinc-700 cursor-not-allowed' : show.watchLive ?? show.watch_live ? 'bg-emerald-600 text-white border-emerald-600' : 'border-zinc-700 text-zinc-400 hover:bg-zinc-800'}`}>{show.window.isComplete ? 'Completed' : 'Watch Live'}</button>
                     <button onClick={() => removeShow(show.tmdb_id)} className="text-red-400 hover:text-red-300 text-sm px-3 py-1.5 rounded-xl border border-red-900 hover:bg-red-950">Remove</button>
                   </div>
                 </div>
