@@ -8,11 +8,19 @@ export interface Show {
   window: {
     primarySubscribe: string;
     secondarySubscribe?: string;
+    /** When true, the show is no longer airing; do not treat as watch-live for planning. */
+    isComplete?: boolean;
   };
   favorite: boolean;
   watchLive: boolean;
   /** Order added (0 = first); used to break ties when two Watch Live services want the same month. */
   addedOrder?: number;
+}
+
+/** Completed shows are not treated as watch-live for scoring or placement. */
+function effectiveWatchLive(show: Show): boolean {
+  const w = show.window as { isComplete?: boolean } | undefined;
+  return !!show.watchLive && !w?.isComplete;
 }
 
 export interface MonthPlan {
@@ -64,7 +72,7 @@ const normalizeMonth = (str: string): string | null => {
 };
 
 const scoreShow = (show: Show) => {
-  if (show.watchLive) return 10;
+  if (effectiveWatchLive(show)) return 10;
   if (show.favorite) return 5;
   return 1;
 };
@@ -97,15 +105,16 @@ export function buildSubscriptionPlan(shows: Show[]): Calendar {
   const currentMonthKey = months[0]; // first of next 12 = this month
 
   for (const show of shows) {
+    const watchLive = effectiveWatchLive(show);
     let subscribeMonthStr: string;
-    if (show.watchLive && show.window.secondarySubscribe) {
+    if (watchLive && show.window.secondarySubscribe) {
       subscribeMonthStr = show.window.secondarySubscribe;
     } else {
       subscribeMonthStr = show.window.primarySubscribe;
     }
     let month = normalizeMonth(subscribeMonthStr);
     // Watch Live + currently airing: if debut month is in the past, use current month so the show gets a slot
-    if (show.watchLive && month && !months.includes(month)) {
+    if (watchLive && month && !months.includes(month)) {
       month = currentMonthKey;
     }
     if (!month || !months.includes(month)) continue;
@@ -152,7 +161,7 @@ export function buildSubscriptionPlan(shows: Show[]): Calendar {
         .filter(([svc]) => svc !== best!.service)
         .map(([svc, monthData]) => {
           const d = monthData[monthKey];
-          return d?.shows.some(s => s.watchLive) ? svc : null;
+          return d?.shows.some(s => effectiveWatchLive(s)) ? svc : null;
         })
         .filter((s): s is string => s !== null);
       calendar[monthKey] = {

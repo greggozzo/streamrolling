@@ -55,12 +55,18 @@ export default function RollingPlanTooltips({
                   key={month.key}
                   className="flex flex-col items-stretch text-center relative shrink-0 min-h-[5.5rem] min-w-0 w-[calc((100%-1rem)/3)] sm:w-[calc((100%-2.25rem)/4)] md:w-[calc((100%-3.75rem)/6)]"
                 >
-                  <div className="shrink-0 h-[1.25rem] sm:h-5 w-full" />
+                  {/* Match grid exactly: same month label classes so row heights align */}
+                  <div
+                    className="text-[10px] sm:text-xs mb-1.5 sm:mb-2 font-mono w-full truncate shrink-0 invisible select-none"
+                    title={month.label}
+                  >
+                    {month.label}
+                  </div>
                   {service ? (
                     <>
                       <button
                         type="button"
-                        className="w-full min-h-[52px] rounded-xl sm:rounded-2xl bg-transparent hover:bg-white/5 transition-colors cursor-pointer border-0"
+                        className="w-full min-h-[52px] rounded-xl sm:rounded-2xl bg-transparent hover:bg-white/5 transition-colors cursor-pointer border-0 flex-shrink-0"
                         onClick={() => setOpenKey(isOpen ? null : month.key)}
                         onMouseEnter={() => setOpenKey(month.key)}
                         onMouseLeave={() => setOpenKey(null)}
@@ -68,8 +74,8 @@ export default function RollingPlanTooltips({
                       >
                         <span className="sr-only">{service}</span>
                       </button>
-                      {/* Reserve same space as grid so overlay rows align */}
-                      <div className="mt-1 sm:mt-1.5 min-h-[2.5rem] shrink-0" />
+                      {/* Match grid: same reserve space as RollingPlanGridClient */}
+                      <div className="mt-1 sm:mt-1.5 min-h-[2.5rem] flex items-start justify-center shrink-0" />
                       {showsForService.length > 0 && (
                         <>
                           {/* Mobile: backdrop to close bottom sheet */}

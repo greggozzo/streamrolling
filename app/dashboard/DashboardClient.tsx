@@ -88,7 +88,9 @@ export default function DashboardClient({
     }
     if (planView === 'watch_live') {
       if (initialPlanWatchLive) return initialPlanWatchLive;
-      const live = shows.filter((s) => s.watchLive === true || s.watch_live === true);
+      const live = shows.filter(
+        (s) => (s.watchLive === true || s.watch_live === true) && !s.window?.isComplete
+      );
       return planToPayload(live);
     }
     return null;
@@ -293,7 +295,10 @@ export default function DashboardClient({
                           ? shows
                           : planView === 'favorites'
                             ? shows.filter((s) => s.favorite)
-                            : shows.filter((s) => s.watchLive ?? s.watch_live)
+                            : shows.filter(
+                                (s) =>
+                                  (s.watchLive ?? s.watch_live) && !s.window?.isComplete
+                              )
                       }
                       plan={currentPlan}
                     />

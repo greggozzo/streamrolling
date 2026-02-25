@@ -93,7 +93,11 @@ export async function GET(request: Request) {
       if (shows.length === 0) continue;
       const planType = prefsByUser.get(userId) ?? 'all';
       if (planType === 'favorites') shows = shows.filter((s: { favorite?: boolean }) => !!s.favorite);
-      else if (planType === 'watch_live') shows = shows.filter((s: { watchLive?: boolean; watch_live?: boolean }) => !!(s.watchLive ?? s.watch_live));
+      else if (planType === 'watch_live')
+        shows = shows.filter(
+          (s: { watchLive?: boolean; watch_live?: boolean; window?: { isComplete?: boolean } }) =>
+            !!(s.watchLive ?? s.watch_live) && !s.window?.isComplete
+        );
       if (shows.length === 0) continue;
       const { plan } = buildRollingPlan(shows);
       const currentPlan = plan[currentMonthKey];
