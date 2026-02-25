@@ -47,12 +47,18 @@ export async function GET(request: Request) {
     .select('user_id');
   const userIdsWithShows = [...new Set((showRows || []).map((r: { user_id: string }) => r.user_id))];
 
-  // Users who have reminders enabled
+  // Users who have reminders enabled (with which plan type to send)
   const { data: prefsRows } = await admin
     .from('user_notification_preferences')
-    .select('user_id')
+    .select('user_id, rolling_plan_type')
     .eq('email_rolling_reminder_enabled', true);
-  const enabledUserIds = new Set((prefsRows || []).map((r: { user_id: string }) => r.user_id));
+  const prefsByUser = new Map(
+    (prefsRows || []).map((r: { user_id: string; rolling_plan_type?: string }) => [
+      r.user_id,
+      (r.rolling_plan_type === 'favorites' || r.rolling_plan_type === 'watch_live' ? r.rolling_plan_type : 'all') as 'all' | 'favorites' | 'watch_live',
+    ])
+  );
+  const enabledUserIds = new Set(prefsByUser.keys());
 
   const candidateUserIds = userIdsWithShows.filter((id) => enabledUserIds.has(id));
   if (candidateUserIds.length === 0) {
@@ -83,7 +89,11 @@ export async function GET(request: Request) {
         if (count >= 2) continue;
       }
 
-      const shows = await loadUserShows(userId);
+      let shows = await loadUserShows(userId);
+      if (shows.length === 0) continue;
+      const planType = prefsByUser.get(userId) ?? 'all';
+      if (planType === 'favorites') shows = shows.filter((s: { favorite?: boolean }) => !!s.favorite);
+      else if (planType === 'watch_live') shows = shows.filter((s: { watchLive?: boolean; watch_live?: boolean }) => !!(s.watchLive ?? s.watch_live));
       if (shows.length === 0) continue;
       const { plan } = buildRollingPlan(shows);
       const currentPlan = plan[currentMonthKey];

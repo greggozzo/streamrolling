@@ -5,7 +5,6 @@ import { loadUserShows } from '@/lib/load-user-shows';
 import { buildRollingPlan } from '@/lib/planner';
 import { upsertUserAggregate } from '@/lib/user-aggregate';
 import DashboardClient from './DashboardClient';
-import RollingPlanGrid from './RollingPlanGrid';
 import type { InitialPlanPayload } from '@/components/RollingCalendar';
 
 /** Load isPaid, shows, and pre-computed plan on the server so the calendar displays in all browsers (Firefox/mobile). */
@@ -16,6 +15,8 @@ export default async function DashboardPage() {
   let initialCancelAtPeriodEnd = false;
   let initialShows: any[] = [];
   let initialPlan: InitialPlanPayload | null = null;
+  let initialPlanFavorites: InitialPlanPayload | null = null;
+  let initialPlanWatchLive: InitialPlanPayload | null = null;
 
   if (userId) {
     try {
@@ -34,17 +35,51 @@ export default async function DashboardPage() {
 
       initialShows = await loadUserShows(userId);
       if (initialShows.length > 0) {
-        const { months, plan } = buildRollingPlan(initialShows);
-        initialPlan = {
-          months,
-          plan: Object.fromEntries(
-            Object.entries(plan).map(([k, v]) => [
-              k,
-              { service: v.service, alsoWatchLive: v.alsoWatchLive },
-            ])
-          ),
+        const toPayload = (shows: any[]) => {
+          const { months, plan } = buildRollingPlan(shows);
+          return {
+            months,
+            plan: Object.fromEntries(
+              Object.entries(plan).map(([k, v]) => [
+                k,
+                { service: v.service, alsoWatchLive: v.alsoWatchLive },
+              ])
+            ),
+          };
         };
+        initialPlan = toPayload(initialShows);
       }
+      const initialPlanFavorites =
+        initialShows.filter((s) => s.favorite).length > 0
+          ? (() => {
+              const { months, plan } = buildRollingPlan(initialShows.filter((s) => s.favorite));
+              return {
+                months,
+                plan: Object.fromEntries(
+                  Object.entries(plan).map(([k, v]) => [
+                    k,
+                    { service: v.service, alsoWatchLive: v.alsoWatchLive },
+                  ])
+                ),
+              };
+            })()
+          : null;
+      const watchLiveShows = initialShows.filter((s) => s.watchLive ?? s.watch_live);
+      const initialPlanWatchLive =
+        watchLiveShows.length > 0
+          ? (() => {
+              const { months, plan } = buildRollingPlan(watchLiveShows);
+              return {
+                months,
+                plan: Object.fromEntries(
+                  Object.entries(plan).map(([k, v]) => [
+                    k,
+                    { service: v.service, alsoWatchLive: v.alsoWatchLive },
+                  ])
+                ),
+              };
+            })()
+          : null;
 
       await upsertUserAggregate(userId, {
         headers: await headers(),
@@ -67,17 +102,8 @@ export default async function DashboardPage() {
       initialCancelAtPeriodEnd={initialCancelAtPeriodEnd}
       initialShows={initialShows}
       initialPlan={initialPlan}
-    >
-      {initialPlan ? (
-        <RollingPlanGrid plan={initialPlan} />
-      ) : (
-        <div className="mb-12 sm:mb-16">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Your Rolling Plan</h2>
-          <div className="bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-8">
-            <p className="text-zinc-500 text-sm text-center py-8">Add shows above to see your rolling plan.</p>
-          </div>
-        </div>
-      )}
-    </DashboardClient>
+      initialPlanFavorites={initialPlanFavorites}
+      initialPlanWatchLive={initialPlanWatchLive}
+    />
   );
 }

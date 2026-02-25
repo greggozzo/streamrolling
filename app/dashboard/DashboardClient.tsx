@@ -6,29 +6,33 @@ import { useRouter } from 'next/navigation';
 import { getProviderForServiceName } from '@/lib/streaming-providers';
 import ShowCard from '@/components/ShowCard';
 import RollingPlanTooltips from './RollingPlanTooltips';
+import RollingPlanGridClient from './RollingPlanGridClient';
 import CancelProvidersSidebar from '@/components/CancelProvidersSidebar';
 import Link from 'next/link';
 import SearchBar from '@/components/SearchBar';
 
 import type { InitialPlanPayload } from '@/components/RollingCalendar';
 
+type PlanView = 'all' | 'favorites' | 'watch_live';
+
 interface DashboardClientProps {
   initialIsPaid: boolean;
   initialCancelAtPeriodEnd?: boolean;
-  /** Server-loaded shows so calendar shows services on first paint in all browsers (Firefox, mobile). */
   initialShows?: any[];
-  /** Server-computed plan so calendar displays without client-side buildRollingPlan (fixes Firefox/mobile). */
   initialPlan?: InitialPlanPayload | null;
-  /** Server-rendered calendar (or empty state) — in initial HTML for Firefox/mobile. */
-  children?: React.ReactNode;
+  initialPlanFavorites?: InitialPlanPayload | null;
+  initialPlanWatchLive?: InitialPlanPayload | null;
 }
+
+const PLAN_VIEW_KEY = 'streamrolling-plan-view';
 
 export default function DashboardClient({
   initialIsPaid,
   initialCancelAtPeriodEnd = false,
   initialShows = [],
   initialPlan = null,
-  children,
+  initialPlanFavorites = null,
+  initialPlanWatchLive = null,
 }: DashboardClientProps) {
   const { userId, isLoaded } = useAuth();
   const router = useRouter();
@@ -41,6 +45,31 @@ export default function DashboardClient({
   const VIEW_MODE_KEY = 'streamrolling-dashboard-view';
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [draggedId, setDraggedId] = useState<number | null>(null);
+
+  const [planView, setPlanView] = useState<PlanView>(() => {
+    if (typeof window === 'undefined') return 'all';
+    const s = localStorage.getItem(PLAN_VIEW_KEY);
+    return s === 'favorites' || s === 'watch_live' ? s : 'all';
+  });
+  const setPlanViewPersisted = (v: PlanView) => {
+    setPlanView(v);
+    try {
+      if (typeof window !== 'undefined') localStorage.setItem(PLAN_VIEW_KEY, v);
+    } catch {}
+  };
+
+  const currentPlan =
+    planView === 'all'
+      ? initialPlan
+      : planView === 'favorites'
+        ? initialPlanFavorites
+        : initialPlanWatchLive;
+  const planTitle =
+    planView === 'all'
+      ? 'Your Rolling Plan'
+      : planView === 'favorites'
+        ? 'Your Rolling Plan (Favorites)'
+        : 'Your Rolling Plan (Watch live)';
 
   useEffect(() => {
     try {
@@ -197,13 +226,72 @@ export default function DashboardClient({
           <SearchBar />
         </div>
 
-        {/* Rolling Plan — server-rendered so it displays in Firefox/mobile; tooltip overlay when has shows; router.refresh() after mutations updates the grid */}
+        {/* Rolling Plan — view switcher (All | Favorites | Watch live) + grid */}
           <div className="relative min-w-0">
-            <div className={shows.length > 0 && initialPlan ? 'pointer-events-none' : undefined}>
-              {children}
-            </div>
-            {shows.length > 0 && initialPlan && (
-              <RollingPlanTooltips shows={shows} plan={initialPlan} />
+            {shows.length > 0 ? (
+              <>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {(
+                    [
+                      { id: 'all' as const, label: 'Overall' },
+                      { id: 'favorites' as const, label: 'Favorites' },
+                      { id: 'watch_live' as const, label: 'Watch live' },
+                    ] as const
+                  ).map(({ id, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setPlanViewPersisted(id)}
+                      className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                        planView === id
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {currentPlan ? (
+                  <>
+                    <div className={currentPlan ? 'pointer-events-none' : undefined}>
+                      <RollingPlanGridClient plan={currentPlan} title={planTitle} />
+                    </div>
+                    {currentPlan && (
+                      <RollingPlanTooltips
+                        shows={
+                          planView === 'all'
+                            ? shows
+                            : planView === 'favorites'
+                              ? shows.filter((s) => s.favorite)
+                              : shows.filter((s) => s.watchLive ?? s.watch_live)
+                        }
+                        plan={currentPlan}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <div className="mb-12 sm:mb-16">
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">{planTitle}</h2>
+                    <div className="bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-8">
+                      <p className="text-zinc-500 text-sm text-center py-8">
+                        {planView === 'favorites'
+                          ? 'Star some shows as favorites to see a favorites-only plan.'
+                          : planView === 'watch_live'
+                            ? 'Mark shows as Watch live to see a watch-live-only plan.'
+                            : 'Add shows above to see your rolling plan.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="mb-12 sm:mb-16">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Your Rolling Plan</h2>
+                <div className="bg-zinc-900 rounded-2xl sm:rounded-3xl p-4 sm:p-8">
+                  <p className="text-zinc-500 text-sm text-center py-8">Add shows above to see your rolling plan.</p>
+                </div>
+              </div>
             )}
           </div>
 

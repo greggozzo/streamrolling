@@ -9,6 +9,7 @@ export default function NotificationSettingsPage() {
   const { userId, isLoaded } = useAuth();
   const router = useRouter();
   const [enabled, setEnabled] = useState(true);
+  const [rollingPlanType, setRollingPlanType] = useState<'all' | 'favorites' | 'watch_live'>('all');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
@@ -30,6 +31,9 @@ export default function NotificationSettingsPage() {
         if (prefsRes.ok) {
           const prefs = await prefsRes.json();
           setEnabled(prefs.email_rolling_reminder_enabled ?? true);
+          const t = prefs.rolling_plan_type;
+          if (t === 'favorites' || t === 'watch_live') setRollingPlanType(t);
+          else setRollingPlanType('all');
         }
         if (statusRes.ok) {
           const status = await statusRes.json();
@@ -51,9 +55,21 @@ export default function NotificationSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email_rolling_reminder_enabled: next }),
       });
-      if (res.ok) {
-        setEnabled(next);
-      }
+      if (res.ok) setEnabled(next);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handlePlanTypeChange(next: 'all' | 'favorites' | 'watch_live') {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/notification-preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rolling_plan_type: next }),
+      });
+      if (res.ok) setRollingPlanType(next);
     } finally {
       setSaving(false);
     }
@@ -122,6 +138,31 @@ export default function NotificationSettingsPage() {
               }`}
             />
           </button>
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-zinc-800">
+          <p className="font-medium mb-2">Which plan in reminder emails?</p>
+          <p className="text-sm text-zinc-500 mb-3">You receive one reminder per month. Choose which rolling plan it’s based on.</p>
+          <fieldset className="space-y-2" role="radiogroup" aria-label="Plan type for emails">
+            {[
+              { value: 'all' as const, label: 'Overall rolling plan (all shows)' },
+              { value: 'favorites' as const, label: 'Favorites only' },
+              { value: 'watch_live' as const, label: 'Watch live only' },
+            ].map(({ value, label }) => (
+              <label key={value} className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="rolling_plan_type"
+                  value={value}
+                  checked={rollingPlanType === value}
+                  onChange={() => handlePlanTypeChange(value)}
+                  disabled={saving}
+                  className="rounded-full border-zinc-600 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span className="text-sm">{label}</span>
+              </label>
+            ))}
+          </fieldset>
         </div>
 
         {!isPaid && (
