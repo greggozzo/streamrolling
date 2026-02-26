@@ -396,21 +396,23 @@ export default function DashboardClient({
             const cardContent = (
               <>
                 {viewMode !== 'list' && <ShowCard show={show} compact={viewMode === 'compact'} />}
-                <div className={viewMode === 'compact' ? 'p-3' : 'p-6'}>
-                  <p className={`text-emerald-400 font-bold ${viewMode === 'compact' ? 'text-sm' : ''} flex items-center gap-2 flex-wrap`}>
-                    {provider ? (
-                      <>
-                        <img src={provider.logoUrl} alt="" className="h-5 w-auto object-contain rounded" />
-                        <span>Subscribe to {provider.name} in {show.window.primarySubscribe}</span>
-                      </>
-                    ) : (
-                      <span>Subscribe to {show.service} in {show.window.primarySubscribe}</span>
-                    )}
-                  </p>
-                  <p className={`text-zinc-500 text-sm mt-1 ${viewMode === 'compact' ? 'text-xs' : ''}`}>
-                    Cancel by {show.window.primaryCancel}
-                  </p>
-                  <div className={`flex flex-wrap gap-2 sm:gap-4 mt-5 ${viewMode === 'compact' ? 'mt-3' : ''}`}>
+                <div className={`flex flex-col flex-1 min-h-0 ${viewMode === 'compact' ? 'p-3' : 'p-6'}`}>
+                  <div className="flex-1 min-h-0">
+                    <p className={`text-emerald-400 font-bold ${viewMode === 'compact' ? 'text-sm' : ''} flex items-center gap-2 flex-wrap`}>
+                      {provider ? (
+                        <>
+                          <img src={provider.logoUrl} alt="" className="h-5 w-auto object-contain rounded" />
+                          <span>Subscribe to {provider.name} in {show.window.primarySubscribe}</span>
+                        </>
+                      ) : (
+                        <span>Subscribe to {show.service} in {show.window.primarySubscribe}</span>
+                      )}
+                    </p>
+                    <p className={`text-zinc-500 text-sm mt-1 ${viewMode === 'compact' ? 'text-xs' : ''}`}>
+                      Cancel by {show.window.primaryCancel}
+                    </p>
+                  </div>
+                  <div className={`flex flex-wrap gap-2 sm:gap-4 mt-3 shrink-0 ${viewMode === 'compact' ? '' : 'mt-5'}`}>
                     <button
                       onClick={() => toggleFavorite(show.tmdb_id, show.favorite)}
                       className={`text-2xl sm:text-3xl transition-all ${show.favorite ? 'text-yellow-400 scale-110' : 'text-zinc-600 hover:text-yellow-400'} ${viewMode === 'compact' ? 'text-xl' : ''}`}
@@ -485,7 +487,7 @@ export default function DashboardClient({
                 onDragOver={onDragOver}
                 onDrop={(e) => onDrop(e, show.tmdb_id)}
                 onDragEnd={onDragEnd}
-                className={`bg-zinc-900 rounded-3xl overflow-hidden group relative cursor-grab active:cursor-grabbing ${viewMode === 'compact' ? 'rounded-2xl' : ''} ${isDragging ? 'opacity-50' : ''}`}
+                className={`flex flex-col h-full bg-zinc-900 rounded-3xl overflow-hidden group relative cursor-grab active:cursor-grabbing ${viewMode === 'compact' ? 'rounded-2xl' : ''} ${isDragging ? 'opacity-50' : ''}`}
               >
                 <span className="absolute top-2 left-2 z-10 text-zinc-500 bg-black/60 rounded px-1.5 py-0.5 text-sm select-none pointer-events-none">⋮⋮</span>
                 {cardContent}
