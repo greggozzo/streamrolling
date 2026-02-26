@@ -233,7 +233,7 @@ export default function NotificationSettingsPage() {
         )}
 
         <div className="mt-6 pt-6 border-t border-zinc-800">
-          <p className="text-sm text-zinc-500 mb-2">Send yourself a test reminder email now (does not count toward your limit).</p>
+          <p className="text-sm text-zinc-500 mb-2">Send yourself a test reminder email now.</p>
           <button
             type="button"
             onClick={handleSendTest}
