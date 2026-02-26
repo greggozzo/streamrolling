@@ -6,6 +6,7 @@
 import { getAuth, clerkClient } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { loadUserShows } from '@/lib/load-user-shows';
+import { getNotificationPreferences } from '@/lib/notification-preferences';
 import { buildRollingPlan, getNext12MonthKeys, formatMonth } from '@/lib/planner';
 import { sendRollingReminder } from '@/lib/email';
 
@@ -33,7 +34,16 @@ async function sendTestReminder(request: Request) {
     );
   }
 
-  const shows = await loadUserShows(userId);
+  let shows = await loadUserShows(userId);
+  const prefs = await getNotificationPreferences(userId);
+  const planType = prefs?.rolling_plan_type ?? 'all';
+  if (planType === 'favorites') shows = shows.filter((s: { favorite?: boolean }) => !!s.favorite);
+  else if (planType === 'watch_live')
+    shows = shows.filter(
+      (s: { watchLive?: boolean; watch_live?: boolean; window?: { isComplete?: boolean } }) =>
+        !!(s.watchLive ?? s.watch_live) && !s.window?.isComplete
+    );
+
   const months = getNext12MonthKeys();
   const currentMonthKey = months[0];
   const nextMonthKey = months[1];
