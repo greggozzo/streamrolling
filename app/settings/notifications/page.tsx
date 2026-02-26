@@ -140,7 +140,7 @@ export default function NotificationSettingsPage() {
       const res = await fetch('/api/test-rolling-reminder', { method: 'POST' });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setTestMessage(data.message ?? 'Test email sent. Check your inbox.');
+        setTestMessage(data.message ?? 'Test email sent. Pleaseheck your inbox.');
       } else {
         setTestMessage(data.error ?? 'Failed to send test email.');
       }
