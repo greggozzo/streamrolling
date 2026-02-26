@@ -2,8 +2,30 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { buildRollingPlan } from '@/lib/planner';
+
+type PlanPreview = { months: { key: string; label: string }[]; plan: Record<string, { service: string | null }> } | null;
+
+function MinimalPlanPreview({ plan, maxMonths = 6 }: { plan: PlanPreview; maxMonths?: number }) {
+  if (!plan?.months?.length) return <span className="text-zinc-500 text-xs">No shows in this plan</span>;
+  const slice = plan.months.slice(0, maxMonths);
+  return (
+    <span className="text-zinc-400 text-xs font-mono">
+      {slice.map((m, i) => {
+        const service = plan.plan[m.key]?.service ?? null;
+        return (
+          <span key={m.key}>
+            {i > 0 && ' · '}
+            <span className="text-zinc-500">{m.label}</span>{' '}
+            <span className={service ? 'text-emerald-400/90' : 'text-zinc-600'}>{service ?? '—'}</span>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
 
 export default function NotificationSettingsPage() {
   const { userId, isLoaded } = useAuth();
@@ -15,6 +37,7 @@ export default function NotificationSettingsPage() {
   const [sendingTest, setSendingTest] = useState(false);
   const [testMessage, setTestMessage] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState(false);
+  const [shows, setShows] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -24,9 +47,10 @@ export default function NotificationSettingsPage() {
     }
     (async () => {
       try {
-        const [prefsRes, statusRes] = await Promise.all([
+        const [prefsRes, statusRes, showsRes] = await Promise.all([
           fetch('/api/notification-preferences'),
           fetch('/api/subscription-status'),
+          fetch('/api/my-shows', { cache: 'no-store' }),
         ]);
         if (prefsRes.ok) {
           const prefs = await prefsRes.json();
@@ -39,6 +63,10 @@ export default function NotificationSettingsPage() {
           const status = await statusRes.json();
           setIsPaid(!!status.isPaid);
         }
+        if (showsRes.ok) {
+          const data = await showsRes.json();
+          setShows(Array.isArray(data) ? data : []);
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -46,6 +74,34 @@ export default function NotificationSettingsPage() {
       }
     })();
   }, [isLoaded, userId, router]);
+
+  const planPreviews = useMemo(() => {
+    const toPreview = (list: any[]): PlanPreview => {
+      if (list.length === 0) return null;
+      const normalized = list.map((s, i) => ({
+        ...s,
+        watchLive: s.watchLive ?? s.watch_live ?? false,
+        favorite: !!s.favorite,
+        addedOrder: s.addedOrder ?? i,
+      }));
+      const { months, plan } = buildRollingPlan(normalized);
+      return {
+        months,
+        plan: Object.fromEntries(
+          Object.entries(plan).map(([k, v]) => [k, { service: v.service }])
+        ),
+      };
+    };
+    const favorites = shows.filter((s) => s.favorite);
+    const watchLive = shows.filter(
+      (s) => (s.watchLive ?? s.watch_live) && !s.window?.isComplete
+    );
+    return {
+      all: toPreview(shows),
+      favorites: toPreview(favorites),
+      watch_live: toPreview(watchLive),
+    };
+  }, [shows]);
 
   async function handleToggle(next: boolean) {
     setSaving(true);
@@ -141,15 +197,15 @@ export default function NotificationSettingsPage() {
         </div>
 
         <div className="mt-6 pt-6 border-t border-zinc-800">
-          <p className="font-medium mb-2">Which plan in reminder emails?</p>
-          <p className="text-sm text-zinc-500 mb-3">You receive one reminder per month. Choose which rolling plan it’s based on.</p>
-          <fieldset className="space-y-2" role="radiogroup" aria-label="Plan type for emails">
+          <p className="font-medium mb-2">Which plan do you want to receive notifications for?</p>
+          <p className="text-sm text-zinc-500 mb-3">Choose which rolling plan it’s based on.</p>
+          <fieldset className="space-y-3" role="radiogroup" aria-label="Plan type for emails">
             {[
               { value: 'all' as const, label: 'Overall rolling plan (all shows)' },
               { value: 'favorites' as const, label: 'Favorites only' },
               { value: 'watch_live' as const, label: 'Watch live only' },
             ].map(({ value, label }) => (
-              <label key={value} className="flex items-center gap-3 cursor-pointer">
+              <label key={value} className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="radio"
                   name="rolling_plan_type"
@@ -157,9 +213,12 @@ export default function NotificationSettingsPage() {
                   checked={rollingPlanType === value}
                   onChange={() => handlePlanTypeChange(value)}
                   disabled={saving}
-                  className="rounded-full border-zinc-600 text-emerald-600 focus:ring-emerald-500"
+                  className="rounded-full border-zinc-600 text-emerald-600 focus:ring-emerald-500 mt-0.5"
                 />
-                <span className="text-sm">{label}</span>
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-sm">{label}</span>
+                  <MinimalPlanPreview plan={value === 'all' ? planPreviews.all : value === 'favorites' ? planPreviews.favorites : planPreviews.watch_live} />
+                </div>
               </label>
             ))}
           </fieldset>
