@@ -12,16 +12,16 @@ function MinimalPlanPreview({ plan, maxMonths = 6 }: { plan: PlanPreview; maxMon
   if (!plan?.months?.length) return <span className="text-zinc-500 text-xs">No shows in this plan</span>;
   const slice = plan.months.slice(0, maxMonths);
   return (
-    <div className="flex flex-wrap gap-1.5 mt-1">
+    <div className="flex flex-wrap gap-1 mt-1.5">
       {slice.map((m) => {
         const service = plan.plan[m.key]?.service ?? null;
         return (
           <span
             key={m.key}
-            className="inline-flex items-center gap-1.5 rounded-md bg-zinc-800/80 px-2 py-0.5 text-xs border border-zinc-700/50"
+            className="inline-flex items-center gap-1.5 rounded-full bg-zinc-800/50 px-2 py-0.5 text-[11px] tracking-tight border border-zinc-700/30"
           >
-            <span className="text-zinc-500 tabular-nums">{m.label}</span>
-            <span className={service ? 'text-emerald-400/90 font-medium' : 'text-zinc-600'}>{service ?? '—'}</span>
+            <span className="text-zinc-500 tabular-nums min-w-[2rem]">{m.label}</span>
+            <span className={service ? 'text-emerald-400 font-medium' : 'text-zinc-600'}>{service ?? '—'}</span>
           </span>
         );
       })}
